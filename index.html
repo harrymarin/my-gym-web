@@ -1,0 +1,4140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iron Log - 铁日记</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // <--- 核心修复点：开启手动 class 模式
+            theme: {
+                extend: {
+                    colors: {
+                        iron: '#A3FF00',
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse-fast 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        'pulse-fast': {
+                            '0%, 100%': {
+                                transform: 'scale(1)',
+                                boxShadow: '0 0 0 rgba(249, 115, 22, 0)'
+                            },
+                            '50%': {
+                                transform: 'scale(1.02)',
+                                boxShadow: '0 0 20px rgba(249, 115, 22, 0.5)'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        /* 拖拽时的幽灵样式 (Ghost) */
+        /* === V15.3 按压反馈 === */
+
+        /* 全局移除红色边框 */
+        * {
+            outline: none !important;
+        }
+        *:focus {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        /* === V25.0 SortableJS 动画优化 === */
+        /* 关键：不要阻止 transform 动画，SortableJS 需要用它来实现丝滑位移 */
+
+        /* 当 Sortable 检测到长按准备就绪时，会自动添加这个类 */
+        .sortable-chosen {
+            transform: scale(0.95) !important; /* 明显缩小 */
+            box-shadow: 0 0 0 3px #A3FF00, 0 10px 40px rgba(163, 255, 0, 0.4) !important; /* 明显的绿色发光边框 */
+            opacity: 0.9 !important;
+            transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+        }
+
+        /* 占位符样式 (拖走后留下的坑) */
+        .sortable-ghost {
+            opacity: 0.4 !important;
+            background: #F3F4F6 !important;
+            border: 2px dashed #A3FF00 !important;
+            transform: scale(0.98) !important;
+            /* 坑不需要过渡动画 */
+            transition: none !important;
+        }
+
+        html.dark .sortable-ghost {
+            background: #27272a !important;
+            border: 2px dashed #A3FF00 !important;
+        }
+
+        /* 正在拖拽的卡片 (Drag) */
+        .sortable-drag {
+            cursor: grabbing !important;
+            transform: scale(1.05) rotate(2deg) !important; /* 明显放大 + 轻微旋转 */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 4px #A3FF00 !important; /* 超大阴影 + 绿色边框 */
+            opacity: 1 !important;
+            /* 拖拽中的卡片不需要过渡 */
+            transition: none !important;
+            z-index: 9999 !important;
+        }
+
+        /* 其他卡片自动让位的动画 - 由 SortableJS 自动添加 */
+        .swipe-container {
+            /* 只允许 transform 有过渡，让 SortableJS 控制位置动画 */
+            transition-property: transform;
+            transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* 拖拽模式下的全局样式 */
+        body.dragging-mode {
+            cursor: grabbing;
+            user-select: none;
+        }
+
+        body.dragging-mode .swipe-container {
+            cursor: grab;
+        }
+    </style>
+    <style>
+        /* 圆环进度动画 */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* 倒计时动画 */
+        .timer-pulse {
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* 巨大按钮点击效果 */
+        .huge-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 卡片完成高亮 */
+        .card-completed {
+            background: linear-gradient(135deg, #A3FF00 0%, #7FFF00 100%) !important;
+            border-color: #A3FF00 !important;
+        }
+
+        .card-completed .text-white,
+        .card-completed .dark\:text-white {
+            color: black !important;
+        }
+
+        .card-completed .text-zinc-400,
+        .card-completed .dark\:text-zinc-400 {
+            color: rgba(0,0,0,0.7) !important;
+        }
+
+        .card-completed .text-gray-500 {
+            color: rgba(0,0,0,0.6) !important;
+        }
+
+        /* 标签页切换 */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 底部导航栏样式由 JavaScript 动态控制 */
+
+        /* iPhone 底部安全区域 */
+        @supports (padding: max(0px)) {
+            .pb-safe {
+                padding-bottom: max(1rem, env(safe-area-inset-bottom));
+            }
+        }
+
+        /* 方块点击效果 */
+        .active\:scale-95:active {
+            transform: scale(0.95);
+        }
+
+        /* 内阴影效果 */
+        .shadow-inner {
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        /* 明亮模式下的内阴影 */
+        html:not(.dark) .shadow-inner {
+            box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        /* iOS Reminders 风格泡泡动画 */
+        @keyframes spring-in {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-spring-in {
+            animation: spring-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* V18.0 渐进式呈现动画 */
+        @keyframes slide-up-fade {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-slide-up {
+            animation: slide-up-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* V19.0 展开动画 */
+        @keyframes slide-down-fade {
+            from {
+                opacity: 0;
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                max-height: 1000px;
+            }
+        }
+
+        .animate-slide-down {
+            animation: slide-down-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* 仪表盘展开/收起动画 */
+        @keyframes slide-down {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .animate-slide-down {
+            animation: slide-down 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* V12.0 手风琴淡入动画 */
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fade-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* 新添加卡片从上方滑入动画 */
+        @keyframes card-slide-in {
+            0% {
+                opacity: 0;
+                transform: translateY(-40px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .card-slide-in {
+            animation: card-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* === V13.0 强制物理引擎 === */
+
+        /* 沉底前的高光样式 */
+        .preparing-to-sink {
+            transform: scale(1.05) translateY(-8px) !important;
+            box-shadow: 0 20px 40px -5px rgba(163, 255, 0, 0.4) !important;
+            border-color: #A3FF00 !important;
+            background-color: rgba(163, 255, 0, 0.05) !important;
+            z-index: 100 !important; /* 层级一定要最高 */
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* 关键：强制让所有 transition 执行慢动作 */
+        ::view-transition-group(*) {
+            animation-duration: 0.8s !important;
+            animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+
+        /* 确保旧位置和新位置的快照混合模式正常 */
+        ::view-transition-old(*),
+        ::view-transition-new(*) {
+            /* 防止混色导致变黑 */
+            mix-blend-mode: normal;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* V13.0 沉底动画的关键帧 */
+        @keyframes cinematic-sink {
+            0% {
+                transform: scale(1.05) translateY(-8px);
+                box-shadow: 0 20px 40px -5px rgba(163, 255, 0, 0.3);
+                opacity: 1;
+            }
+            30% {
+                transform: scale(1.02) translateY(-4px);
+                box-shadow: 0 15px 30px -5px rgba(163, 255, 0, 0.2);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1) translateY(0);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                opacity: 1;
+            }
+        }
+
+        .cinematic-sinking {
+            animation: cinematic-sink 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        /* 电影级丝滑沉底动画 - 四阶段 */
+        /* 阶段1：浮起 */
+        @keyframes float-up {
+            0% {
+                transform: scale(1) translateY(0);
+            }
+            100% {
+                transform: scale(1.08) translateY(-16px);
+                box-shadow: 0 25px 50px -12px rgba(163, 255, 0, 0.5);
+            }
+        }
+
+        /* 阶段2：悬浮呼吸 */
+        @keyframes hover-breathe {
+            0%, 100% {
+                transform: scale(1.08) translateY(-16px);
+                box-shadow: 0 25px 50px -12px rgba(163, 255, 0, 0.5);
+            }
+            50% {
+                transform: scale(1.1) translateY(-18px);
+                box-shadow: 0 30px 60px -12px rgba(163, 255, 0, 0.6);
+            }
+        }
+
+        /* 阶段3：落地恢复 */
+        @keyframes land-gently {
+            0% {
+                transform: scale(1.08) translateY(-16px);
+            }
+            100% {
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .sinking-float-up {
+            animation: float-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .sinking-hover-breathe {
+            animation: hover-breathe 0.8s ease-in-out forwards;
+        }
+
+        .sinking-land {
+            animation: land-gently 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* 沉底过渡动画 - 用于平滑移动到新位置 */
+        .sinking-transition {
+            transition: transform 1.2s cubic-bezier(0.23, 1, 0.32, 1),
+                        opacity 0.4s ease;
+        }
+
+        /* 添加动作按钮的微动画 */
+        .add-glow-btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .add-glow-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(163, 255, 0, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .add-glow-btn:hover::before {
+            opacity: 1;
+        }
+
+        /* === V14.2 修复版：Siri 边缘流光 (三明治遮罩法) === */
+
+        /* 1. 旋转动画 */
+        @keyframes border-flow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 2. 呼吸动画 */
+        @keyframes border-breathe {
+            0%, 100% { opacity: 1; filter: blur(8px); }
+            50% { opacity: 0.6; filter: blur(6px); }
+        }
+
+        /* === V21.0 All-in-One: 全功能修复版 === */
+
+        /* 1. 基础卡片样式 */
+        .swipe-container.plan-card {
+            position: relative;
+            background-color: #fafafa; /* 默认：浅灰实心 */
+            overflow: hidden; /* 默认隐藏溢出 */
+            touch-action: pan-y;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        html.dark .swipe-container.plan-card {
+            background-color: #18181b; /* 深色模式：zinc-900 实心 */
+        }
+
+        /* 2. V24.0: 完成状态专用样式 */
+        .swipe-container.plan-card.is-completed {
+            background-color: rgba(163, 255, 0, 0.2) !important;
+            border-color: #A3FF00 !important;
+        }
+
+        .swipe-container.plan-card.is-completed .card-content-layer {
+            background-color: transparent !important; /* 强制透明，让外层绿色透进来 */
+        }
+
+        /* 3. 非激活状态：卡片内容层必须有实心背景（遮挡红色删除层） */
+        .plan-card:not(.is-active):not(.is-completed) .card-content-layer {
+            background-color: #ffffff !important; /* 浅色：纯白 */
+        }
+
+        html.dark .plan-card:not(.is-active):not(.is-completed) .card-content-layer {
+            background-color: #18181b !important; /* 深色：zinc-900 */
+        }
+
+        /* 4. 激活状态：允许光晕溢出 */
+        .plan-card.is-active {
+            overflow: visible !important;
+            z-index: 10;
+        }
+
+        /* 5. 激活状态：强制隐藏红色删除层（防止透红） */
+        .plan-card.is-active .delete-action-layer {
+            display: none !important;
+        }
+
+        /* 6. 激活状态：Siri 流光特效 - 在 .plan-card 上应用伪元素 */
+        /* 流光渐变层 (::before) - 最底层 */
+        .plan-card.is-active::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            z-index: 0; /* 在删除层之上，但在内容之下 */
+            border-radius: 1.5rem;
+            background: linear-gradient(60deg, #A3FF00, #00E5FF, #FF00DD, #A3FF00);
+            background-size: 300% 300%;
+            animation: border-flow 4s ease infinite, border-breathe 3s ease-in-out infinite alternate;
+            filter: blur(8px);
+            pointer-events: none;
+        }
+
+        /* 实心遮罩层 (::after) - 中间层，挡住流光中心 */
+        .plan-card.is-active::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 1; /* 在流光层之上 */
+            border-radius: 1.5rem;
+            background-color: #ffffff; /* 浅色模式 */
+            pointer-events: none;
+        }
+
+        html.dark .plan-card.is-active::after {
+            background-color: #09090b; /* 深色模式：zinc-950 */
+        }
+
+        /* 7. 激活状态：内容层需要透明才能看到下面的遮罩层 */
+        .plan-card.is-active .card-content-layer {
+            background: transparent !important;
+            border-color: transparent !important;
+            position: relative;
+            z-index: 2; /* 最顶层 */
+        }
+
+        /* 8. 删除按钮层（非激活状态） */
+        .delete-action-layer {
+            position: absolute;
+            top: 1px;
+            bottom: 1px;
+            right: 1px;
+            left: 1px;
+            width: auto;
+            background-color: #ef4444;
+            border-radius: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 2rem;
+            z-index: 0;
+        }
+
+        /* === V15.0 左滑删除样式（已整合到V21.0） === */
+        /* 删除时的消失动画 */
+        @keyframes slide-out-left {
+            to {
+                transform: translateX(-100%);
+                opacity: 0;
+                height: 0;
+                margin: 0;
+                padding: 0;
+            }
+        }
+        .being-deleted {
+            animation: slide-out-left 0.4s forwards ease-in-out;
+        }
+    </style>
+</head>
+<body class="font-sans tracking-wide min-h-screen bg-[#F5F5F7] dark:bg-black text-gray-900 dark:text-white transition-colors duration-300">
+
+    <!-- ============ 训练页面 ============ -->
+    <div id="tab-workout" class="tab-content active">
+        <!-- 主容器 -->
+        <div class="max-w-md mx-auto min-h-screen px-6 py-6 pb-28 flex flex-col relative">
+
+            <!-- Apple风格顶部 Header -->
+            <header class="flex justify-between items-end mb-8">
+                <!-- 左侧：信息区 -->
+                <div class="flex flex-col">
+                    <!-- Date: Uppercase, wide tracking -->
+                    <p id="current-date" class="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1">MONDAY, JAN 19</p>
+                    <!-- Title: Large, bold, with status dot -->
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-3xl font-black text-white tracking-tight">开始训练</h1>
+                        <!-- Pulsing status dot (only visible when training is active) -->
+                        <div id="status-dot" class="hidden relative">
+                            <div class="w-2 h-2 bg-[#A3FF00] rounded-full"></div>
+                            <div class="absolute inset-0 w-2 h-2 bg-[#A3FF00] rounded-full animate-ping opacity-75"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：Control Island -->
+                <div class="flex items-center gap-2">
+                    <!-- End Button -->
+                    <button id="end-session-btn" class="hidden px-4 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded-lg text-xs font-bold whitespace-nowrap">
+                        结束训练
+                    </button>
+
+                    <!-- Timer: Monospace, digital watch style -->
+                    <div id="timer-container" class="hidden px-3 py-1 bg-zinc-900 border border-white/10 rounded-lg">
+                        <span id="session-timer" class="text-sm font-mono text-[#A3FF00] tabular-nums font-semibold">00:00</span>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle-btn" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-white transition-colors rounded-lg hover:bg-zinc-900">
+                        <span id="theme-icon" class="text-sm">🌙</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 简洁SVG进度环 -->
+            <div class="flex justify-center items-center py-10">
+                <div class="relative" style="width: 280px; height: 280px;">
+                    <svg width="280" height="280" viewBox="0 0 280 280">
+                        <defs>
+                            <linearGradient id="outerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#A3FF00"/>
+                                <stop offset="100%" stop-color="#22c55e"/>
+                            </linearGradient>
+                            <linearGradient id="innerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#22d3ee"/>
+                                <stop offset="100%" stop-color="#0891b2"/>
+                            </linearGradient>
+                        </defs>
+
+                        <!-- 外圈轨道 -->
+                        <circle cx="140" cy="140" r="115" fill="none" stroke="#27272a" stroke-width="14" opacity="0.5"/>
+                        <!-- 内圈轨道 -->
+                        <circle cx="140" cy="140" r="92" fill="none" stroke="#27272a" stroke-width="14" opacity="0.5"/>
+
+                        <!-- 外圈进度 -->
+                        <circle id="outer-ring" cx="140" cy="140" r="115" fill="none"
+                            stroke="url(#outerGrad)" stroke-width="14" stroke-linecap="round"
+                            stroke-dasharray="722.56" stroke-dashoffset="722.56"
+                            transform="rotate(-90, 140, 140)"
+                            style="transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);"/>
+
+                        <!-- 内圈进度 -->
+                        <circle id="inner-ring" cx="140" cy="140" r="92" fill="none"
+                            stroke="url(#innerGrad)" stroke-width="14" stroke-linecap="round"
+                            stroke-dasharray="578.05" stroke-dashoffset="578.05"
+                            transform="rotate(-90, 140, 140)"
+                            style="transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);"/>
+                    </svg>
+
+                    <!-- 中心文本 -->
+                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <div id="total-progress" class="text-7xl font-semibold text-white tabular-nums tracking-tight" style="text-shadow: 0 2px 20px rgba(0,0,0,0.8);">0</div>
+                        <div class="text-xs font-medium text-zinc-500 mt-1 uppercase tracking-widest">今日完成</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 精致黑金控制台 - 绿色荧光版本 -->
+            <div class="mb-3 relative w-full rounded-3xl border border-white/10 bg-[#09090b]/80 bg-gradient-to-b from-[#6EDD46]/5 to-transparent shadow-[0_0_40px_-10px_rgba(110,221,70,0.3)] backdrop-blur-xl ring-1 ring-inset ring-white/5 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]"
+                 id="add-container">
+
+                <div id="add-trigger" onclick="toggleAddPanel(true)"
+                     class="px-6 cursor-pointer group hover:bg-zinc-800/30 dark:hover:bg-black/30 transition-colors flex items-center justify-center gap-3 h-[60px]">
+                    <div class="w-8 h-8 rounded-full bg-zinc-800 dark:bg-black group-hover:bg-[#A3FF00] text-zinc-400 group-hover:text-black flex items-center justify-center transition-colors shrink-0">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    </div>
+                    <span class="text-zinc-400 dark:text-zinc-500 font-semibold group-hover:text-[#A3FF00] transition-colors text-base">添加新动作</span>
+                </div>
+
+                <div id="add-panel" class="hidden opacity-0 px-4 py-3 relative transition-all duration-300" style="transform: translateY(-10px);">
+
+                    <div class="flex items-end justify-between mb-3 gap-2">
+
+                        <div class="flex-1">
+                            <input type="text" id="config-name" placeholder="动作名称"
+                                class="w-full bg-transparent text-2xl font-black text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-600 outline-none transition-colors leading-none">
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <div class="flex bg-gray-200 dark:bg-black/40 rounded-full p-0.5 border border-gray-300 dark:border-white/10 shrink-0 h-8 items-center">
+                                <button id="type-strength" onclick="selectExerciseType('strength')" class="px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-all">力量</button>
+                                <button id="type-cardio" onclick="selectExerciseType('cardio')" class="px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors flex items-center">有氧</button>
+                            </div>
+                            <button onclick="toggleAddPanel(false)" class="w-7 h-7 rounded-full bg-gray-300 dark:bg-zinc-800/50 hover:bg-gray-400 dark:hover:bg-zinc-700 flex items-center justify-center text-gray-600 dark:text-zinc-400 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 力量训练参数 -->
+                    <div id="strength-params" class="grid grid-cols-3 gap-2 mb-3">
+
+                        <div class="h-14 bg-black dark:bg-black/80 rounded-xl px-3 flex items-center justify-between border border-gray-300 dark:border-zinc-800/60 relative group hover:border-[#A3FF00]/30 transition-colors">
+                            <input type="number" id="config-sets" value="4" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-14 outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]">
+                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight">组</span>
+                        </div>
+
+                        <div class="h-14 bg-black dark:bg-black/80 rounded-xl px-3 flex items-center justify-between border border-gray-300 dark:border-zinc-800/60 relative group hover:border-[#A3FF00]/30 transition-colors">
+                            <input type="number" id="config-reps" value="10" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-14 outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]">
+                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight">次</span>
+                        </div>
+
+                        <div class="h-14 bg-black dark:bg-black/80 rounded-xl px-3 flex items-center justify-between border border-gray-300 dark:border-zinc-800/60 relative group hover:border-[#A3FF00]/30 transition-colors">
+                            <input type="number" id="config-weight" value="20" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-full outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]">
+                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight">KG</span>
+                        </div>
+                    </div>
+
+                    <!-- 有氧训练参数（默认隐藏） -->
+                    <div id="cardio-params" class="hidden mb-3">
+                        <div class="h-14 bg-black dark:bg-black/80 rounded-xl px-4 flex items-center justify-between border border-gray-300 dark:border-zinc-800/60 relative group hover:border-[#A3FF00]/30 transition-colors">
+                            <input type="number" id="config-duration" value="30" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-20 outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]">
+                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight">分钟</span>
+                        </div>
+                    </div>
+
+                    <!-- 力量训练的组间歇（有氧时不显示） -->
+                    <div id="strength-rest" class="mb-3 relative">
+                        <span class="absolute -top-2.5 left-3 px-2 bg-[#18181b] dark:bg-black text-[9px] font-bold text-zinc-500 dark:text-zinc-600 tracking-wider">组间歇</span>
+                        <div class="flex gap-2 h-11 pt-1">
+                            <button onclick="selectRest(60, this)" class="rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-all flex items-center justify-center">60s</button>
+                            <button onclick="selectRest(90, this)" class="rest-btn flex-1 h-full rounded-xl bg-[#A3FF00]/10 text-sm font-bold text-[#A3FF00] border border-[#A3FF00]/50 transition-all flex items-center justify-center">90s</button>
+                            <button onclick="selectRest(120, this)" class="rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-all flex items-center justify-center">120s</button>
+                            <div class="flex-1 bg-gray-200 dark:bg-zinc-800 rounded-xl flex items-center justify-center relative h-full border border-transparent focus-within:border-gray-400 dark:focus-within:border-zinc-600 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors">
+                                <input type="number" id="config-rest-custom" placeholder="自定义" class="bg-transparent text-center w-full h-full text-sm font-bold text-gray-900 dark:text-white outline-none placeholder-zinc-500 dark:placeholder-zinc-500" oninput="onCustomRestInput()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="addFromCard()"
+                        class="w-full h-11 rounded-xl bg-[#A3FF00] hover:bg-[#9add00] text-black font-black text-base shadow-[0_0_20px_rgba(163,255,0,0.15)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                        <span>确认添加</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 今日计划列表 -->
+            <div id="plan-list" class="space-y-4">
+                <p id="empty-state" class="text-gray-500 dark:text-zinc-600 text-center py-8">
+                    <p class="text-2xl mb-2">📋</p>
+                    <p>开始添加你的第一个训练计划</p>
+                </p>
+            </div>
+
+            <!-- 清空按钮 -->
+            <div id="clear-all-container" class="hidden mt-6 mb-8">
+                <button id="clear-all-btn" class="w-full py-2.5 bg-gray-100 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-[#A3FF00]/10 text-gray-600 dark:text-zinc-400 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-black/50 transition-all text-sm">
+                    清空今日计划
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============ 日历页面 ============ -->
+    <div id="tab-calendar" class="tab-content">
+        <div class="min-h-screen p-4 bg-black">
+            <div class="w-full max-w-md mx-auto">
+
+                <h2 class="text-3xl font-black text-white mb-6">训练日历</h2>
+
+                <!-- 月视图 -->
+                <div class="bg-black/60 backdrop-blur-2xl border border-[#A3FF00]/20 rounded-3xl p-6 mb-6">
+                    <!-- 月份导航 -->
+                    <div class="flex justify-between items-center mb-6">
+                        <button id="prev-month" class="text-white p-2 hover:bg-white/5 rounded-lg transition-all">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <h3 id="current-month" class="text-xl font-bold text-white">2024年1月</h3>
+                        <button id="next-month" class="text-white p-2 hover:bg-white/5 rounded-lg transition-all">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- 星期标题 -->
+                    <div class="grid grid-cols-7 gap-1 mb-2">
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">一</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">二</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">三</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">四</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">五</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">六</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">日</div>
+                    </div>
+
+                    <!-- 日期网格 -->
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 选中日期的训练详情 -->
+                <div id="selected-date-workout" class="bg-black/60 backdrop-blur-2xl border border-[#A3FF00]/20 rounded-3xl p-6 hidden">
+                    <h4 class="text-white font-bold mb-4" id="selected-date-title">1月15日</h4>
+                    <div id="selected-date-content" class="space-y-3">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 我的页面 ============ -->
+    <div id="tab-profile" class="tab-content">
+        <div class="min-h-screen p-4 bg-black">
+            <div class="w-full max-w-md mx-auto">
+
+                <h2 class="text-3xl font-black text-white mb-6">我的</h2>
+
+                <!-- 身体数据 -->
+                <div class="bg-black/60 backdrop-blur-2xl border border-[#A3FF00]/20 rounded-3xl p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-white font-bold">身体数据</h3>
+                        <button id="edit-body-data-btn" class="text-[#A3FF00] text-sm font-semibold">编辑</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-zinc-500 text-xs mb-1">体重</p>
+                            <p class="text-white text-2xl font-black"><span id="body-weight">--</span> kg</p>
+                        </div>
+                        <div>
+                            <p class="text-zinc-500 text-xs mb-1">体脂率</p>
+                            <p class="text-white text-2xl font-black"><span id="body-fat">--</span>%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 组间休息计时器 -->
+                <div class="bg-black/60 backdrop-blur-2xl border border-[#A3FF00]/20 rounded-3xl p-6 mb-6">
+                    <h3 class="text-white font-bold mb-4">组间休息计时器</h3>
+
+                    <!-- 时间选择 -->
+                    <div class="flex gap-2 mb-6">
+                        <button class="rest-time-btn flex-1 py-2 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 rounded-lg text-sm font-semibold transition-all hover:bg-black/50" data-time="60">60秒</button>
+                        <button class="rest-time-btn flex-1 py-2 bg-[#A3FF00]/20 text-[#A3FF00] border border-[#A3FF00]/30 rounded-lg text-sm font-semibold transition-all hover:bg-[#A3FF00]/30" data-time="90">90秒</button>
+                        <button class="rest-time-btn flex-1 py-2 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 rounded-lg text-sm font-semibold transition-all hover:bg-black/50" data-time="120">120秒</button>
+                    </div>
+
+                    <!-- 计时器显示 -->
+                    <div class="flex justify-center mb-6">
+                        <div class="relative">
+                            <svg class="progress-ring" width="150" height="150">
+                                <circle class="text-zinc-800" stroke="currentColor" stroke-width="8" fill="transparent" r="65" cx="75" cy="75"/>
+                                <circle id="rest-timer-ring" class="progress-ring__circle" stroke="#A3FF00" stroke-width="8" stroke-linecap="round" fill="transparent" r="65" cx="75" cy="75" stroke-dasharray="408.41" stroke-dashoffset="0"/>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div id="rest-timer-display" class="text-4xl font-black text-white">90</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 控制按钮 -->
+                    <div class="flex gap-3">
+                        <button id="start-timer-btn" class="flex-1 py-3 bg-[#A3FF00]/20 text-[#A3FF00] font-bold rounded-xl hover:bg-[#A3FF00]/30 transition-all">
+                            开始
+                        </button>
+                        <button id="reset-timer-btn" class="flex-1 py-3 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 font-semibold rounded-xl hover:bg-black/50 transition-all">
+                            重置
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PR 记录 -->
+                <div class="bg-black/60 backdrop-blur-2xl border border-[#A3FF00]/20 rounded-3xl p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-white font-bold">个人记录 (PR)</h3>
+                    </div>
+                    <div id="pr-list" class="space-y-3">
+                        <p class="text-zinc-600 text-sm text-center py-4">暂无记录</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 底部导航栏 ============ -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-2xl border-t border-[#A3FF00]/20 z-50 pb-safe pt-2">
+        <div class="flex justify-around items-center h-16 px-4">
+
+            <button class="nav-item group flex items-center gap-1 pl-4 pr-4 py-2.5 rounded-full transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]" data-tab="workout">
+                <svg class="w-6 h-6 transition-transform duration-300 group-[.nav-active]:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z"/>
+                </svg>
+                <span class="overflow-hidden w-0 opacity-0 group-[.nav-active]:w-auto group-[.nav-active]:opacity-100 group-[.nav-active]:ml-2 text-[15px] font-bold whitespace-nowrap transition-all duration-300">训练</span>
+            </button>
+
+            <button class="nav-item group flex items-center gap-1 pl-4 pr-4 py-2.5 rounded-full transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]" data-tab="calendar">
+                <svg class="w-6 h-6 transition-transform duration-300 group-[.nav-active]:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span class="overflow-hidden w-0 opacity-0 group-[.nav-active]:w-auto group-[.nav-active]:opacity-100 group-[.nav-active]:ml-2 text-[15px] font-bold whitespace-nowrap transition-all duration-300">日历</span>
+            </button>
+
+            <button class="nav-item group flex items-center gap-1 pl-4 pr-4 py-2.5 rounded-full transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]" data-tab="profile">
+                <svg class="w-6 h-6 transition-transform duration-300 group-[.nav-active]:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span class="overflow-hidden w-0 opacity-0 group-[.nav-active]:w-auto group-[.nav-active]:opacity-100 group-[.nav-active]:ml-2 text-[15px] font-bold whitespace-nowrap transition-all duration-300">我的</span>
+            </button>
+
+        </div>
+    </nav>
+
+    <!-- ============ 跟练模式（全屏覆盖）============ -->
+    <div id="workout-mode" class="fixed inset-0 bg-white dark:bg-zinc-950 z-50 hidden flex flex-col">
+        <div class="flex-1 flex flex-col items-center justify-center p-8">
+            <h2 id="workout-exercise-name" class="text-5xl font-black mb-4 text-gray-900 dark:text-white">深蹲</h2>
+            <p id="workout-target" class="text-gray-400 dark:text-zinc-400 text-xl">目标：4组 × 10次</p>
+        </div>
+
+        <!-- 本组数据输入区 -->
+        <div class="px-8 mb-6">
+            <div class="flex items-center justify-center gap-4">
+                <!-- 重量输入 -->
+                <div class="bg-gray-100 dark:bg-white/5 backdrop-blur-xl border-2 border-gray-200 dark:border-white/10 rounded-2xl px-6 py-4 flex-1 max-w-[180px]">
+                    <p class="text-gray-500 dark:text-zinc-500 text-xs mb-1 text-center">重量 (kg)</p>
+                    <input type="number" id="current-set-weight" class="w-full bg-transparent text-gray-900 dark:text-white text-4xl font-black text-center focus:outline-none" value="0" min="0" step="0.5">
+                </div>
+
+                <!-- 次数输入 -->
+                <div class="bg-gray-100 dark:bg-white/5 backdrop-blur-xl border-2 border-gray-200 dark:border-white/10 rounded-2xl px-6 py-4 flex-1 max-w-[180px]">
+                    <p class="text-gray-500 dark:text-zinc-500 text-xs mb-1 text-center">次数 (reps)</p>
+                    <input type="number" id="current-set-reps" class="w-full bg-transparent text-gray-900 dark:text-white text-4xl font-black text-center focus:outline-none" value="10" min="1">
+                </div>
+            </div>
+            <p id="weight-history-hint" class="text-gray-500 dark:text-zinc-600 text-sm text-center mt-3 hidden">
+                上一组: <span id="last-weight" class="text-[#A3FF00] font-semibold">0</span> kg
+            </p>
+        </div>
+
+        <div class="text-center mb-8">
+            <p class="text-gray-500 dark:text-zinc-500 text-sm mb-2">已完成</p>
+            <p id="workout-progress" class="text-6xl font-black text-gray-900 dark:text-white">0 / 4</p>
+        </div>
+
+        <div class="p-8 pb-16">
+            <button id="complete-set-btn" class="huge-btn w-full aspect-square max-w-sm mx-auto rounded-full bg-black dark:bg-[#A3FF00] text-white dark:text-black flex items-center justify-center shadow-sm dark:shadow-lg dark:shadow-[#A3FF00]/20">
+                <span class="text-8xl font-black">+</span>
+            </button>
+            <p class="text-center text-neutral-500 dark:text-zinc-500 text-sm mt-6">点击完成一组</p>
+        </div>
+
+        <button id="close-workout-btn" class="absolute top-4 right-4 w-12 h-12 bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-full flex items-center justify-center text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-white transition-all">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- ============ 动作完成覆盖层============ -->
+    <div id="exercise-complete-overlay" class="fixed inset-0 bg-black/90 dark:bg-black/95 z-[60] hidden flex-col items-center justify-center backdrop-blur-xl">
+        <div class="text-center px-8">
+            <div class="text-6xl mb-4">🎉</div>
+            <h2 class="text-4xl font-black text-white mb-2">动作完成！</h2>
+            <p id="completed-exercise-name" class="text-gray-300 dark:text-zinc-400 text-xl mb-8">深蹲</p>
+
+            <div class="space-y-3 max-w-sm mx-auto">
+                <button id="next-exercise-btn" class="w-full py-4 bg-white dark:bg-[#A3FF00] text-black dark:text-black font-black text-xl rounded-xl hover:bg-zinc-100 dark:hover:bg-[#92E000] transition-all">
+                    继续：下一项
+                </button>
+                <button id="finish-exercise-btn" class="w-full py-4 bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 text-white font-semibold text-xl rounded-xl hover:bg-white/20 dark:hover:bg-white/10 transition-all">
+                    完成
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 倒计时覆盖层（全屏）============ -->
+    <div id="rest-timer-overlay" class="fixed inset-0 bg-zinc-950/95 z-60 hidden flex-col items-center justify-center backdrop-blur-xl">
+        <div class="text-center">
+            <p class="text-zinc-500 text-lg mb-4">休息中</p>
+            <div id="timer-display" class="text-8xl font-black text-white dark:text-[#A3FF00] timer-pulse mb-8">01:30</div>
+
+            <div class="flex gap-3 justify-center">
+                <button id="skip-rest-btn" class="px-8 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-all">
+                    跳过
+                </button>
+                <button id="minimize-timer-btn" class="px-8 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-all flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7 7"/>
+                    </svg>
+                    缩小
+                </button>
+                <button id="add-30s-btn" class="px-8 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-all">
+                    +30秒
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 倒计时悬浮条（最小化）============ -->
+    <div id="rest-timer-bar" class="fixed bottom-0 left-0 right-0 z-50 hidden">
+        <div class="backdrop-blur-md bg-zinc-900/95 border-t-2 border-[#A3FF00] px-6 py-3">
+            <div class="flex items-center justify-between max-w-md mx-auto">
+                <div class="flex items-center gap-4">
+                    <div class="text-[#A3FF00]">
+                        <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-zinc-400 text-xs">休息中</p>
+                        <p id="timer-bar-display" class="text-white text-xl font-black">01:30</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="timer-bar-skip-btn" class="px-4 py-2 bg-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/20 transition-all">
+                        跳过
+                    </button>
+                    <button id="timer-bar-expand-btn" class="w-10 h-10 bg-[#A3FF00]/20 border border-[#A3FF00]/30 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-[#A3FF00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <!-- 下一组预告 -->
+            <div id="next-set-preview" class="text-center mt-2 text-zinc-400 text-xs hidden">
+                下一组: <span class="text-[#A3FF00] font-semibold">110kg × 8</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ V9.2 Symmetrical Crystal 智能休息胶囊 - 对称水晶 ============ -->
+    <div id="smart-rest-capsule" class="fixed left-4 right-4 bottom-24 z-[100] hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pb-[env(safe-area-inset-bottom)]">
+
+        <div id="capsule-body" class="mx-auto max-w-[360px] h-[72px] bg-zinc-900/40 dark:bg-black/40 backdrop-blur-3xl border border-white/10 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.4)] flex items-center justify-center relative overflow-hidden transition-all duration-300">
+
+            <!-- 顶部高光线 -->
+            <div class="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50"></div>
+
+            <!-- CSS Grid 3列布局：绝对对称 -->
+            <div class="grid grid-cols-[1fr_auto_1fr] items-center w-full px-5 gap-4">
+
+                <!-- 左侧：减10秒按钮 (靠右对齐) -->
+                <div class="flex justify-end">
+                    <button id="smart-rest-minus-btn" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/15 border border-white/5 active:scale-90 flex items-center justify-center transition-all text-white/60 hover:text-white group-hover:border-white/10">
+                        <span class="text-[10px] font-bold tracking-tighter">-10</span>
+                    </button>
+                </div>
+
+                <!-- 中间：计时器 (绝对居中) -->
+                <div class="flex items-center justify-center min-w-[100px]">
+                    <span id="smart-rest-timer" class="text-4xl font-black font-mono text-white tracking-widest drop-shadow-lg tabular-nums leading-none">00:00</span>
+                </div>
+
+                <!-- 右侧：加10秒 + 跳过按钮 (靠左对齐) -->
+                <div class="flex items-center gap-3 justify-start">
+                    <button id="smart-rest-plus-btn" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/15 border border-white/5 active:scale-90 flex items-center justify-center transition-all text-white/60 hover:text-white group-hover:border-white/10">
+                        <span class="text-[10px] font-bold tracking-tighter">+10</span>
+                    </button>
+
+                    <button onclick="smartRestSkip()" id="smart-rest-skip-btn" class="w-8 h-8 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-90" aria-label="Skip">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 完成庆祝弹窗 ============ -->
+    <div id="celebration-overlay" class="fixed inset-0 bg-zinc-950/90 z-70 hidden flex items-center justify-center backdrop-blur-xl">
+        <div class="text-center">
+            <div class="text-6xl mb-4">🎉</div>
+            <h3 id="celebration-text" class="text-3xl font-black mb-2 text-white">深蹲完成！</h3>
+            <p class="text-zinc-400 mb-8">干得漂亮！</p>
+            <button id="celebration-ok-btn" class="px-12 py-3 bg-[#A3FF00]/20 text-[#A3FF00] font-bold rounded-xl hover:bg-[#A3FF00]/30 transition-all">
+                继续训练
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ============ 主题切换系统 ============
+
+        function initTheme() {
+            // 读取保存的主题偏好，默认使用深色模式
+            const savedTheme = localStorage.getItem('ironlog_theme');
+            const isDark = savedTheme === null ? true : savedTheme === 'dark';
+
+            const html = document.documentElement;
+            if (isDark) {
+                html.classList.add('dark');
+            } else {
+                html.classList.remove('dark');
+            }
+
+            // 设置图标
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.textContent = isDark ? '🌙' : '☀️';
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+
+            if (isDark) {
+                html.classList.remove('dark');
+                localStorage.setItem('ironlog_theme', 'light');
+                document.getElementById('theme-icon').textContent = '☀️';
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('ironlog_theme', 'dark');
+                document.getElementById('theme-icon').textContent = '🌙';
+            }
+        }
+
+        // ============ 智能伸缩仪表盘 ============
+
+        function toggleDashboard(shouldExpand) {
+            const collapsed = document.getElementById('dashboard-collapsed');
+            const expanded = document.getElementById('dashboard-expanded');
+
+            if (shouldExpand) {
+                // 展开仪表盘
+                collapsed.classList.add('hidden');
+                expanded.classList.remove('hidden');
+                expanded.classList.add('animate-slide-down');
+
+                // 聚焦到输入框
+                setTimeout(() => {
+                    document.getElementById('exercise-name')?.focus();
+                }, 100);
+            } else {
+                // 收起仪表盘
+                expanded.classList.add('hidden');
+                expanded.classList.remove('animate-slide-down');
+                collapsed.classList.remove('hidden');
+            }
+        }
+
+        function autoUpdateDashboardState() {
+            const plan = getTodaysPlan();
+            const collapsed = document.getElementById('dashboard-collapsed');
+            const expanded = document.getElementById('dashboard-expanded');
+
+            // 自动判断：无计划时展开，有计划时收起
+            if (plan && plan.length > 0) {
+                // 有计划：显示收起态
+                collapsed.classList.remove('hidden');
+                expanded.classList.add('hidden');
+            } else {
+                // 无计划：显示展开态
+                collapsed.classList.add('hidden');
+                expanded.classList.remove('hidden');
+            }
+        }
+
+        // ============ 紧凑输入控制台 ============
+
+        let inputState = {
+            selectedType: 'strength',
+            selectedRestTime: 90
+        };
+
+        // 全局函数：点击预设按钮时填入输入框（提前定义，避免 onclick 时未定义）
+        window.setCustomRest = function(seconds) {
+            inputState.selectedRestTime = seconds;
+            const currentType = inputState.selectedType;
+            const customInput = currentType === 'strength'
+                ? document.getElementById('custom-rest-input')
+                : document.getElementById('custom-rest-input-cardio');
+
+            if (customInput) {
+                customInput.value = seconds;
+                customInput.parentElement.classList.add('scale-95');
+                setTimeout(() => customInput.parentElement.classList.remove('scale-95'), 100);
+            }
+            updateRestTimeButtons();
+        };
+
+        function initInputConsole() {
+            // 类型切换 - 添加 null 检查
+            const typeStrengthBtn = document.getElementById('type-strength');
+            const typeCardioBtn = document.getElementById('type-cardio');
+
+            if (typeStrengthBtn) {
+                typeStrengthBtn.addEventListener('click', function() {
+                    inputState.selectedType = 'strength';
+                    updateTypeButtons();
+                    updateSettingsVisibility();
+                });
+            }
+
+            if (typeCardioBtn) {
+                typeCardioBtn.addEventListener('click', function() {
+                    inputState.selectedType = 'cardio';
+                    updateTypeButtons();
+                    updateSettingsVisibility();
+                });
+            }
+
+            // 休息时间选择（预设按钮）
+            document.querySelectorAll('.rest-time-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    inputState.selectedRestTime = parseInt(this.dataset.time);
+                    updateRestTimeButtons();
+                });
+            });
+
+            // 全局函数：跳过休息
+            window.smartRestSkip = function() {
+                if (smartRestTimerInterval) {
+                    clearInterval(smartRestTimerInterval);
+                    smartRestTimerInterval = null;
+                    const capsule = document.getElementById('smart-rest-capsule');
+                    const capsuleBody = document.getElementById('capsule-body');
+                    const timerDisplay = document.getElementById('smart-rest-timer');
+                    capsule.classList.add('hidden');
+                    // 重置样式（恢复对称水晶）
+                    capsuleBody.classList.remove('border-orange-500/80', 'shadow-[0_0_40px_rgba(249,115,22,0.6)]', 'animate-pulse-fast');
+                    capsuleBody.classList.add('border-white/10');
+                    timerDisplay.classList.remove('text-orange-400');
+                }
+            };
+
+            // 全局函数：调整休息时间
+            window.adjustRestTime = function(delta) {
+                if (smartRestTimeLeft > 0) {
+                    smartRestTimeLeft += delta;
+                    // 限制最小值为 10 秒
+                    if (smartRestTimeLeft < 10) smartRestTimeLeft = 10;
+                    // 同步更新初始时长，避免进度条跳动
+                    if (delta > 0) {
+                        smartRestInitialDuration += delta;
+                    } else {
+                        smartRestInitialDuration = Math.max(smartRestInitialDuration + delta, smartRestTimeLeft);
+                    }
+                    updateSmartRestTimerDisplay();
+                    if (navigator.vibrate) {
+                        navigator.vibrate(10);
+                    }
+                }
+            };
+
+            // 自定义输入框 - 力量训练
+            const customRestInput = document.getElementById('custom-rest-input');
+            if (customRestInput) {
+                customRestInput.addEventListener('input', function() {
+                    const value = parseInt(this.value) || 90;
+                    inputState.selectedRestTime = Math.min(Math.max(value, 10), 600); // 限制在 10-600 秒
+                    // 清除按钮的选中状态
+                    document.querySelectorAll('.rest-time-btn').forEach(btn => {
+                        btn.classList.remove('bg-black', 'dark:bg-[#A3FF00]', 'text-white', 'dark:text-black', 'border-transparent');
+                        btn.classList.add('bg-gray-100', 'dark:bg-zinc-800', 'border-zinc-200', 'dark:border-white/5', 'text-gray-500', 'dark:text-zinc-400');
+                    });
+                });
+            }
+
+            // 自定义输入框 - 有氧训练
+            const customRestInputCardio = document.getElementById('custom-rest-input-cardio');
+            if (customRestInputCardio) {
+                customRestInputCardio.addEventListener('input', function() {
+                    const value = parseInt(this.value) || 90;
+                    inputState.selectedRestTime = Math.min(Math.max(value, 10), 600); // 限制在 10-600 秒
+                    // 清除按钮的选中状态
+                    document.querySelectorAll('.rest-time-btn').forEach(btn => {
+                        btn.classList.remove('bg-black', 'dark:bg-[#A3FF00]', 'text-white', 'dark:text-black', 'border-transparent');
+                        btn.classList.add('bg-gray-100', 'dark:bg-zinc-800', 'border-zinc-200', 'dark:border-white/5', 'text-gray-500', 'dark:text-zinc-400');
+                    });
+                });
+            }
+
+            // 力量训练添加按钮（旧控制台，可能不存在）
+            const addExerciseBtn = document.getElementById('add-exercise-btn');
+            if (addExerciseBtn) {
+                addExerciseBtn.addEventListener('click', function() {
+                    addExercise();
+                });
+            }
+
+            // 有氧训练添加按钮（旧控制台，可能不存在）
+            const addCardioBtn = document.getElementById('add-cardio-btn');
+            if (addCardioBtn) {
+                addCardioBtn.addEventListener('click', function() {
+                    addExercise();
+                });
+            }
+
+            // 回车添加（旧控制台，可能不存在）
+            const exerciseNameInput = document.getElementById('exercise-name');
+            if (exerciseNameInput) {
+                exerciseNameInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        addExercise();
+                    }
+                });
+            }
+        }
+
+        function updateTypeButtons() {
+            const strengthBtn = document.getElementById('type-strength');
+            const cardioBtn = document.getElementById('type-cardio');
+
+            if (inputState.selectedType === 'strength') {
+                strengthBtn.classList.remove('text-zinc-500');
+                strengthBtn.classList.add('bg-zinc-700', 'text-white');
+                cardioBtn.classList.remove('bg-zinc-700', 'text-white');
+                cardioBtn.classList.add('text-zinc-500');
+            } else {
+                cardioBtn.classList.remove('text-zinc-500');
+                cardioBtn.classList.add('bg-zinc-700', 'text-white');
+                strengthBtn.classList.remove('bg-zinc-700', 'text-white');
+                strengthBtn.classList.add('text-zinc-500');
+            }
+        }
+
+        function updateRestTimeButtons() {
+            document.querySelectorAll('.rest-time-btn').forEach(btn => {
+                const time = parseInt(btn.dataset.time);
+                if (time === inputState.selectedRestTime) {
+                    // 选中状态：浅色模式黑色，深色模式荧光绿
+                    btn.classList.remove('bg-gray-100', 'dark:bg-zinc-800', 'border-zinc-200', 'dark:border-white/5', 'text-gray-500', 'dark:text-zinc-400');
+                    btn.classList.add('bg-black', 'dark:bg-[#A3FF00]', 'text-white', 'dark:text-black', 'border-transparent');
+                } else {
+                    // 未选中状态：浅色模式白色+边框，深色模式深灰
+                    btn.classList.remove('bg-black', 'dark:bg-[#A3FF00]', 'text-white', 'dark:text-black', 'border-transparent');
+                    btn.classList.add('bg-gray-100', 'dark:bg-zinc-800', 'border-zinc-200', 'dark:border-white/5', 'text-gray-500', 'dark:text-zinc-400');
+                }
+            });
+        }
+
+        function updateSettingsVisibility() {
+            const strengthSettings = document.getElementById('strength-settings');
+            const cardioSettings = document.getElementById('cardio-settings');
+
+            if (inputState.selectedType === 'strength') {
+                strengthSettings.classList.remove('hidden');
+                cardioSettings.classList.add('hidden');
+            } else {
+                strengthSettings.classList.add('hidden');
+                cardioSettings.classList.remove('hidden');
+            }
+        }
+
+        function addExercise() {
+            const nameInput = document.getElementById('exercise-name');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                alert('请输入动作名称');
+                return;
+            }
+
+            const plan = getTodaysPlan();
+            const newExercise = {
+                id: generateId(),
+                name: name,
+                type: inputState.selectedType,
+                restTime: inputState.selectedRestTime
+            };
+
+            if (inputState.selectedType === 'strength') {
+                newExercise.targetSets = parseInt(document.getElementById('target-sets').value) || 4;
+                newExercise.reps = parseInt(document.getElementById('target-reps').value) || 10;
+                newExercise.initialWeight = parseFloat(document.getElementById('target-weight').value) || 0;
+                newExercise.doneSets = 0;
+                newExercise.weightLogs = [];
+                newExercise.plannedSets = null;
+            } else {
+                newExercise.duration = parseInt(document.getElementById('target-duration').value) || 30;
+                newExercise.completed = false;
+            }
+
+            plan.push(newExercise);
+            saveTodaysPlan(plan);
+            updateUI();
+
+            // 重置输入框
+            nameInput.value = '';
+            document.getElementById('target-sets').value = '4';
+            document.getElementById('target-reps').value = '10';
+            document.getElementById('target-weight').value = '0';
+            document.getElementById('target-duration').value = '30';
+            nameInput.focus();
+        }
+
+        // ============ V25/V26 Fusion Data Management ============
+
+        // Global State
+        let todayPlans = [];
+        const STORAGE_KEY = 'ironlog_today_plans';
+
+        // Initialize
+        function initApp() {
+            // 优先从新系统加载，如果没有则尝试从旧系统加载
+            let saved = localStorage.getItem(STORAGE_KEY);
+
+            // 如果新系统没有数据，尝试从旧系统读取
+            if (!saved) {
+                const today = new Date().toDateString();
+                saved = localStorage.getItem('ironlog_plan_' + today);
+            }
+
+            if (saved) {
+                try {
+                    todayPlans = JSON.parse(saved);
+                    // 同时保存到新系统，确保数据同步
+                    localStorage.setItem(STORAGE_KEY, saved);
+                } catch(e) {
+                    console.error("Data parse error", e);
+                    todayPlans = [];
+                }
+            }
+            renderTodayPlan();
+
+            // 根据是否有动作来设置控制面板初始状态
+            initControlPanelState();
+        }
+
+        // 初始化控制面板状态
+        function initControlPanelState() {
+            const container = document.getElementById('add-container');
+            const trigger = document.getElementById('add-trigger');
+            const panel = document.getElementById('add-panel');
+            const clearAllContainer = document.getElementById('clear-all-container');
+
+            if (todayPlans.length === 0) {
+                // 没有动作：默认展开
+                container.style.maxHeight = '600px';
+                trigger.classList.add('hidden');
+                panel.classList.remove('hidden');
+                panel.style.opacity = '1';
+                panel.style.transform = 'translateY(0) scale(1)';
+                // 延迟聚焦
+                setTimeout(() => {
+                    document.getElementById('config-name').focus();
+                }, 300);
+
+                // 隐藏清空按钮
+                if (clearAllContainer) {
+                    clearAllContainer.classList.add('hidden');
+                }
+            } else {
+                // 有动作：默认收起
+                container.style.maxHeight = '48px';
+                trigger.classList.remove('hidden');
+                panel.classList.add('hidden');
+                panel.style.opacity = '0';
+
+                // 显示清空按钮
+                if (clearAllContainer) {
+                    clearAllContainer.classList.remove('hidden');
+                }
+            }
+        }
+
+        // Save Data
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(todayPlans));
+        }
+
+        // Compatibility functions for old code
+        function getTodaysPlan() {
+            return todayPlans;
+        }
+
+        function saveTodaysPlan(plan) {
+            todayPlans = plan;
+            saveData();
+        }
+
+        // 更新UI（兼容旧代码）
+        function updateUI() {
+            renderTodayPlan();
+        }
+
+        function renderPlanList(plan) {
+            todayPlans = plan;
+            renderTodayPlan();
+        }
+
+        // Delete Plan
+        function deletePlan(index) {
+            if (confirm("确定要删除这个动作吗？")) {
+                todayPlans.splice(index, 1);
+                saveData();
+                renderTodayPlan();
+
+                // 如果删除后没有动作了，自动展开控制面板
+                if (todayPlans.length === 0) {
+                    initControlPanelState();
+                }
+            }
+        }
+
+        // === V25 Pure: Quick Add Mode (No Modal) ===
+
+        // Quick add: Instantly creates a default exercise and expands it
+        function quickAddPlan() {
+            // 1. Create a default empty exercise
+            const defaultPlan = {
+                id: Date.now(),
+                name: "新动作", // Default name
+                weight: 20,     // Default weight
+                targetSets: 4,  // Default 4 sets
+                reps: 10,       // Default 10 reps
+                doneSets: 0,
+                completed: false,
+                isStarted: false,
+                isDetailsOpen: true, // Auto-expand after adding, convenient for editing
+                setsDetails: [] // Initialize empty array
+            };
+
+            // 2. Auto-generate 4 sets of default data
+            for (let i = 0; i < defaultPlan.targetSets; i++) {
+                defaultPlan.setsDetails.push({
+                    weight: defaultPlan.weight,
+                    reps: defaultPlan.reps,
+                    completed: false
+                });
+            }
+
+            // 3. Add directly to list
+            todayPlans.push(defaultPlan);
+            saveData();
+            renderTodayPlan();
+
+            // 4. Scroll to bottom
+            setTimeout(() => {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                // Vibration feedback
+                if(navigator.vibrate) navigator.vibrate(30);
+            }, 300);
+        }
+
+        // === 深邃黑金控制台核心逻辑 ===
+
+        let selectedRestTime = 90;
+        let selectedExerciseType = 'strength'; // 默认力量
+
+        // 切换运动类型
+        function selectExerciseType(type) {
+            selectedExerciseType = type;
+            const strengthBtn = document.getElementById('type-strength');
+            const cardioBtn = document.getElementById('type-cardio');
+            const strengthParams = document.getElementById('strength-params');
+            const cardioParams = document.getElementById('cardio-params');
+            const strengthRest = document.getElementById('strength-rest');
+
+            if (type === 'strength') {
+                // 按钮样式
+                strengthBtn.className = "px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-all";
+                cardioBtn.className = "px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors flex items-center";
+
+                // 显示/隐藏参数区域
+                strengthParams.classList.remove('hidden');
+                cardioParams.classList.add('hidden');
+                strengthRest.classList.remove('hidden');
+            } else {
+                // 按钮样式
+                strengthBtn.className = "px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors flex items-center";
+                cardioBtn.className = "px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-all";
+
+                // 显示/隐藏参数区域
+                strengthParams.classList.add('hidden');
+                cardioParams.classList.remove('hidden');
+                strengthRest.classList.add('hidden');
+            }
+        }
+
+        // 1. 切换面板 (高级丝滑动画)
+        function toggleAddPanel(isOpen) {
+            const container = document.getElementById('add-container');
+            const trigger = document.getElementById('add-trigger');
+            const panel = document.getElementById('add-panel');
+
+            if (isOpen) {
+                // 展开：先隐藏触发器，然后同步展开高度和淡入内容
+                trigger.classList.add('hidden');
+
+                // 设置初始状态
+                panel.classList.remove('hidden');
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateY(-8px) scale(0.98)';
+
+                // 先开始高度展开
+                container.style.transition = 'max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+                container.style.maxHeight = '600px';
+
+                // 稍后开始内容淡入，让高度先展开一部分
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        panel.style.transition = 'opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
+                        panel.style.opacity = '1';
+                        panel.style.transform = 'translateY(0) scale(1)';
+
+                        setTimeout(() => {
+                            document.getElementById('config-name').focus();
+                        }, 150);
+                    }, 50);
+                });
+
+            } else {
+                // 收起：同步淡出、上移和高度收缩
+                panel.style.transition = 'opacity 0.3s cubic-bezier(0.4, 0, 1, 1), transform 0.3s cubic-bezier(0.4, 0, 1, 1)';
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateY(-8px) scale(0.98)';
+
+                // 稍后开始收起高度，让淡出动画先进行一部分
+                setTimeout(() => {
+                    container.style.transition = 'max-height 0.35s cubic-bezier(0.4, 0, 1, 1)';
+                    container.style.maxHeight = '48px';
+                }, 50);
+
+                // 等待动画完成后重置
+                setTimeout(() => {
+                    panel.classList.add('hidden');
+                    trigger.classList.remove('hidden');
+                    panel.style.transform = '';
+                }, 350);
+            }
+        }
+
+        // 2. 组间歇选择器 (精致胶囊样式)
+        function selectRest(time, btn) {
+            selectedRestTime = time;
+            // 清除自定义输入框
+            document.getElementById('config-rest-custom').value = '';
+            document.querySelectorAll('.rest-btn').forEach(b => {
+                b.className = "rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-all flex items-center justify-center";
+            });
+            btn.className = "rest-btn flex-1 h-full rounded-xl bg-[#A3FF00]/10 text-sm font-bold text-[#A3FF00] border border-[#A3FF00]/50 transition-all flex items-center justify-center";
+        }
+
+        // 自定义组间歇输入时清除预设按钮选中状态
+        function onCustomRestInput() {
+            document.querySelectorAll('.rest-btn').forEach(b => {
+                b.className = "rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-all flex items-center justify-center";
+            });
+        }
+
+        // 记录新添加的卡片ID，用于动画
+        let newlyAddedCardId = null;
+
+        // 3. 从控制台添加动作
+        function addFromCard() {
+            const nameInput = document.getElementById('config-name');
+            const name = nameInput.value;
+
+            if (!name) {
+                nameInput.focus();
+                nameInput.classList.add('animate-pulse');
+                setTimeout(() => nameInput.classList.remove('animate-pulse'), 500);
+                return;
+            }
+
+            const type = selectedExerciseType || 'strength';
+            let newPlan;
+
+            if (type === 'cardio') {
+                // 有氧运动：只记录时长
+                const duration = parseInt(document.getElementById('config-duration').value) || 30;
+
+                newPlan = {
+                    id: Date.now(),
+                    name: name,
+                    type: 'cardio',
+                    duration: duration, // 分钟
+                    completed: false,
+                    isStarted: false,
+                    isDetailsOpen: false
+                };
+            } else {
+                // 力量训练：记录组数次数重量
+                const sets = parseInt(document.getElementById('config-sets').value) || 4;
+                const reps = parseInt(document.getElementById('config-reps').value) || 10;
+                const weight = parseFloat(document.getElementById('config-weight').value) || 0;
+
+                // 检查自定义组间歇
+                const customRestInput = document.getElementById('config-rest-custom');
+                let restTime = selectedRestTime;
+                if (customRestInput.value && customRestInput.value > 0) {
+                    restTime = parseInt(customRestInput.value);
+                }
+
+                // 生成数据
+                const setsDetails = [];
+                for (let i = 0; i < sets; i++) {
+                    setsDetails.push({ weight: weight, reps: reps, completed: false });
+                }
+
+                newPlan = {
+                    id: Date.now(),
+                    name: name,
+                    type: 'strength',
+                    weight: weight,
+                    initialWeight: weight,
+                    targetSets: sets,
+                    reps: reps,
+                    restTime: restTime,
+                    doneSets: 0,
+                    completed: false,
+                    isStarted: false,
+                    isDetailsOpen: false,
+                    setsDetails: setsDetails
+                };
+            }
+
+            todayPlans.push(newPlan);
+            newlyAddedCardId = newPlan.id; // 记录新添加的ID
+            saveData();
+            renderTodayPlan();
+
+            // 重置输入框
+            nameInput.value = '';
+            if (type === 'strength') {
+                const customRestInput = document.getElementById('config-rest-custom');
+                if (customRestInput) customRestInput.value = '';
+            }
+
+            // 收起面板
+            toggleAddPanel(false);
+
+            // 滚动到底部
+            setTimeout(() => {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }, 300);
+        }
+
+        // 旧版本兼容函数
+        function toggleAdvancedCreator(show) {
+            toggleAddPanel(show);
+        }
+
+        function addFromAdvancedCreator() {
+            addFromCard();
+        }
+
+        // Helper functions for exercise management
+
+        // Start Training (Simple Toggle)
+        function startExercise(id) {
+            console.log('[StartExercise] 开始训练，id:', id);
+            const exercise = todayPlans.find(p => p.id === id);
+            console.log('[StartExercise] 找到动作:', exercise);
+            if (exercise) {
+                // 启动总计时
+                console.log('[StartExercise] 调用startSessionTimer');
+                startSessionTimer();
+
+                exercise.isStarted = true;
+                saveData();
+                renderTodayPlan();
+                console.log('[StartExercise] 训练已启动');
+            } else {
+                console.log('[StartExercise] 未找到动作');
+            }
+        }
+
+        // Complete Cardio Exercise
+        function completeCardio(id) {
+            const exercise = todayPlans.find(p => p.id === id);
+            if (exercise && exercise.type === 'cardio') {
+                exercise.completed = true;
+                // 震动反馈
+                if (navigator.vibrate) {
+                    navigator.vibrate([50, 50, 50]);
+                }
+                saveData();
+                renderTodayPlan();
+            }
+        }
+
+        // Toggle Details Dropdown
+        function toggleDetails(id) {
+            const exercise = todayPlans.find(p => p.id === id);
+            if (exercise) {
+                if (typeof exercise.isDetailsOpen === 'undefined') exercise.isDetailsOpen = false;
+                exercise.isDetailsOpen = !exercise.isDetailsOpen;
+                saveData();
+                renderTodayPlan();
+            }
+        }
+
+        // 测试函数 - 检查是否能被调用
+        window.testCompleteSetInline = function() {
+            console.log('[TEST] testCompleteSetInline 被调用了！');
+            alert('测试函数能被调用');
+        };
+
+        // Quick Log Bubble (Complete Set)
+        window.completeSetInline = function(id, setIndex) {
+            console.log('[CompleteSetInline] 调用参数:', id, setIndex);
+            const exercise = todayPlans.find(p => p.id === id);
+            if (!exercise) {
+                console.log('[CompleteSetInline] 找不到exercise，id:', id);
+                return;
+            }
+
+            console.log('[CompleteSetInline] 找到exercise:', exercise.name, '当前完成组数:', exercise.doneSets, '目标组数:', exercise.targetSets);
+
+            // 启动会话计时器
+            startSessionTimer();
+
+            // 记录原来的完成状态
+            const wasCompleted = exercise.doneSets >= exercise.targetSets;
+            console.log('[CompleteSetInline] 原来是否完成:', wasCompleted);
+
+            // Update the count
+            if (setIndex < exercise.doneSets) {
+                // Undo: if clicking a previous set
+                exercise.doneSets = setIndex;
+            } else {
+                // Complete: if clicking current or next
+                exercise.doneSets = setIndex + 1;
+                // 震动反馈
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+            }
+
+            console.log('[CompleteSetInline] 更新后完成组数:', exercise.doneSets);
+
+            // Sync with detailed array if it exists
+            if (exercise.setsDetails && exercise.setsDetails[setIndex]) {
+                exercise.setsDetails[setIndex].completed = (setIndex < exercise.doneSets);
+            }
+
+            // 检查是否刚刚完成
+            const isNowCompleted = exercise.doneSets >= exercise.targetSets;
+            const justCompleted = !wasCompleted && isNowCompleted;
+
+            console.log('[CompleteSetInline] 现在是否完成:', isNowCompleted, '刚刚完成:', justCompleted);
+
+            if (justCompleted) {
+                console.log('[CompleteSetInline] 触发沉底动画');
+                // 刚完成所有组，触发电影级沉底动画
+                exercise.completed = true;
+                saveData();
+
+                // 清除可能正在运行的倒计时
+                if (smartRestTimerInterval) {
+                    clearInterval(smartRestTimerInterval);
+                    smartRestTimerInterval = null;
+                }
+
+                const performSink = () => {
+                    renderTodayPlan();
+                    setTimeout(() => {
+                        showCompletionCapsule(exercise.name);
+                    }, 100);
+                };
+
+                cinematicSinkAnimation(id, performSink);
+            } else {
+                console.log('[CompleteSetInline] 正常更新，不触发动画');
+                // 未完成，正常更新
+                saveData();
+                renderTodayPlan();
+
+                // 如果还有未完成的组，启动智能倒计时
+                if (exercise.doneSets < exercise.targetSets) {
+                    console.log('[CompleteSetInline] 启动倒计时，动作:', exercise.name, '休息时间:', exercise.restTime || 90);
+                    startSmartRestTimer(exercise, exercise.restTime || 90);
+                }
+            }
+        }
+
+        // Quick add button (+) functionality
+        function quickLogSet(index) {
+            const exercise = todayPlans[index];
+            if (exercise && exercise.doneSets < exercise.targetSets) {
+                exercise.doneSets++;
+                exercise.isStarted = true;
+                // 震动反馈
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+                saveData();
+                renderTodayPlan();
+            }
+        }
+
+        // Generate details HTML for expanded view
+        function generateDetailsHtml(exercise) {
+            if (!exercise.setsDetails) return '';
+
+            let html = '';
+            exercise.setsDetails.forEach((detail, i) => {
+                const isSetDone = i < exercise.doneSets;
+                html += `
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                        <span class="text-xs font-bold text-zinc-500">第 ${i + 1} 组</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-bold text-zinc-700 dark:text-zinc-300">${detail.weight} kg</span>
+                            <span class="text-xs text-zinc-500">×</span>
+                            <span class="text-sm font-bold text-zinc-700 dark:text-zinc-300">${detail.reps} 次</span>
+                        </div>
+                        <div class="${isSetDone ? 'text-[#A3FF00]' : 'text-zinc-400'}">
+                            ${isSetDone ? '✓' : '○'}
+                        </div>
+                    </div>
+                `;
+            });
+            return html;
+        }
+
+        // Main render function (V25 classic: glow, Start button, drag-sort)
+        function renderTodayPlan() {
+            const listContainer = document.getElementById('plan-list');
+            if (!listContainer) return;
+            listContainer.innerHTML = '';
+
+            // 智能沉底排序：未完成的在前，完成的在后
+            const sortedPlans = [...todayPlans].sort((a, b) => {
+                const aIsCardio = a.type === 'cardio';
+                const bIsCardio = b.type === 'cardio';
+                const aCompleted = aIsCardio ? a.completed : (a.doneSets >= a.targetSets);
+                const bCompleted = bIsCardio ? b.completed : (b.doneSets >= b.targetSets);
+
+                // 如果 a 完成，b 未完成，a 排在后面
+                if (aCompleted && !bCompleted) return 1;
+                // 如果 a 未完成，b 完成，a 排在前面
+                if (!aCompleted && bCompleted) return -1;
+                // 否则保持原顺序
+                return 0;
+            });
+
+            sortedPlans.forEach((exercise, index) => {
+                // 判断是否为有氧运动
+                const isCardio = exercise.type === 'cardio';
+
+                // 力量训练的完成状态
+                const isCompleted = isCardio ? exercise.completed : (exercise.doneSets >= exercise.targetSets);
+                if (typeof exercise.isStarted === 'undefined') exercise.isStarted = false;
+                if (typeof exercise.isDetailsOpen === 'undefined') exercise.isDetailsOpen = false;
+
+                const isExpanded = !isCompleted && (isCardio ? false : (exercise.doneSets > 0 || exercise.isStarted));
+                const showDetails = isExpanded && exercise.isDetailsOpen;
+
+                // 检查是否是新添加的卡片
+                const isNewlyAdded = exercise.id === newlyAddedCardId;
+
+                let outerClass = "swipe-container plan-card relative mb-3 overflow-hidden border border-white/10 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(110,221,70,0.3)] ring-1 ring-inset ring-white/5 transition-all duration-300 ";
+                if (isNewlyAdded) {
+                    outerClass += "card-slide-in "; // 添加滑入动画
+                }
+
+                // 根据展开状态和完成状态设置圆角
+                if (isCompleted || (!isExpanded && !isCompleted)) {
+                    outerClass += "rounded-full "; // 完成状态或初始状态：完全圆形胶囊
+                } else {
+                    outerClass += "rounded-3xl "; // 展开后：圆角矩形
+                }
+
+                if (isCompleted) {
+                    // 完成状态：增强绿色荧光玻璃
+                    outerClass += "is-completed bg-gradient-to-b from-[#6EDD46]/15 to-transparent bg-[#09090b]/80 border-[#6EDD46]/40 shadow-[0_0_50px_-10px_rgba(110,221,70,0.5)]";
+                } else if (isExpanded) {
+                    outerClass += "is-active border-transparent bg-gradient-to-b from-[#6EDD46]/8 to-transparent bg-[#09090b]/80";
+                } else {
+                    outerClass += "bg-gradient-to-b from-[#6EDD46]/5 to-transparent bg-[#09090b]/80 border-white/5";
+                }
+
+                let innerClass = "card-content-layer p-3 relative z-20 h-full rounded-[inherit] ";
+                if (isCompleted) {
+                    innerClass += "bg-transparent";
+                } else if (!isExpanded) {
+                    innerClass += "bg-transparent"; // 玻璃效果：内层透明
+                }
+
+                // 根据类型显示不同的副标题
+                const subtitle = isCardio
+                    ? `${exercise.duration || 30} 分钟`
+                    : `${exercise.weight || exercise.initialWeight || 0} KG × ${exercise.targetSets} SETS × ${exercise.reps} REPS`;
+
+                const cardHtml = `
+                    <div class="${outerClass}" data-exercise-id="${exercise.id}" style="view-transition-name: card-${exercise.id};">
+                         ${!isCompleted ? `<div class="delete-action-layer bg-red-500/90 backdrop-blur-xl"><div class="flex items-center gap-1 font-bold text-white mr-4"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg><span>删除</span></div></div>` : ''}
+                         <div class="${innerClass}" onclick="${isCardio ? '' : `toggleDetails(${exercise.id})`}">
+                              <div class="flex justify-between items-center">
+                                  <div>
+                                      <h3 class="text-lg font-black ${isCompleted ? 'text-[#6EDD46]' : 'text-white'}">${exercise.name}</h3>
+                                      <p class="text-xs font-medium text-zinc-400 mt-1 uppercase tracking-wide">${subtitle}</p>
+                                  </div>
+                                  <div>
+                                      ${isCompleted ? `
+                                          <div class="w-12 h-12 rounded-full bg-[#6EDD46] flex items-center justify-center shadow-lg"><svg class="w-7 h-7 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+                                      ` : `
+                                          ${isCardio ? `
+                                              <button onclick="event.stopPropagation(); completeCardio(${exercise.id})" class="bg-[#6EDD46] hover:bg-[#5bc438] text-black font-black text-sm px-5 py-2 rounded-full shadow-lg active:scale-95 flex items-center gap-1 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>完成</button>
+                                          ` : `
+                                          ${!isExpanded ? `
+                                              <button onclick="event.stopPropagation(); startExercise(${exercise.id})" class="bg-[#6EDD46] hover:bg-[#5bc438] text-black font-black text-sm px-5 py-2 rounded-full shadow-lg active:scale-95 flex items-center gap-1 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>START</button>
+                                          ` : `
+                                               <div class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800/50 backdrop-blur-sm border border-white/10 text-zinc-400 transition-transform duration-300 ${showDetails ? 'rotate-180' : ''}"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>
+                                          `}
+                                          `}
+                                      `}
+                                  </div>
+                              </div>
+                              ${(!isCardio && isExpanded && !isCompleted) ? `
+                                  <div class="mt-5 pt-5 border-t border-white/10 animate-slide-down" onclick="event.stopPropagation()">
+                                      <div class="flex items-center justify-between gap-3 mb-4">
+                                          <div class="flex gap-2 flex-wrap">
+                                              ${Array(exercise.targetSets).fill().map((_, i) => {
+                                                  const isDone = i < exercise.doneSets;
+                                                  return `<button onclick="event.stopPropagation(); completeSetInline(${exercise.id}, ${i})" class="w-10 h-10 rounded-xl font-black text-sm transition-all ${isDone ? 'bg-[#6EDD46] text-black scale-100 shadow-[0_0_20px_rgba(110,221,70,0.4)]' : 'bg-[#09090b]/40 backdrop-blur-md border border-white/10 text-zinc-400 hover:bg-[#6EDD46]/10 hover:border-[#6EDD46]/40 hover:text-[#6EDD46] shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_0_20px_rgba(110,221,70,0.2)]'}">${isDone ? '✓' : i + 1}</button>`;
+                                              }).join('')}
+                                          </div>
+                                          <button onclick="quickLogSetById(${exercise.id})" class="flex-1 h-10 bg-[#09090b]/40 backdrop-blur-md border border-white/10 hover:bg-[#6EDD46] hover:border-[#6EDD46] hover:text-black hover:shadow-[0_0_25px_rgba(110,221,70,0.5)] text-zinc-400 rounded-xl flex items-center justify-center font-bold text-xl active:scale-95 transition-all shadow-[0_4px_12px_rgba(0,0,0,0.3)]">+</button>
+                                      </div>
+                                      ${showDetails ? `<div class="space-y-1 bg-[#09090b]/30 backdrop-blur-md border border-white/5 rounded-xl p-2 animate-fade-in shadow-[0_4px_12px_rgba(0,0,0,0.2)]">${generateDetailsHtml(exercise)}<div class="text-center mt-2"><button onclick="toggleDetails(${exercise.id})" class="text-xs text-zinc-500 py-2 w-full hover:text-zinc-300">收起详情</button></div></div>` : ''}
+                                  </div>
+                              ` : ''}
+                         </div>
+                    </div>
+                `;
+                listContainer.insertAdjacentHTML('beforeend', cardHtml);
+            });
+
+            // 清除新添加标记，并触发动画
+            if (newlyAddedCardId) {
+                setTimeout(() => {
+                    const newCard = document.querySelector(`[data-exercise-id="${newlyAddedCardId}"]`);
+                    if (newCard) {
+                        // 触发重排以启动动画
+                        newCard.style.animation = 'none';
+                        newCard.offsetHeight; // 触发重排
+                        newCard.style.animation = null;
+                    }
+                    newlyAddedCardId = null;
+                }, 50);
+            }
+
+            // 更新清空按钮的显示状态
+            const clearAllContainer = document.getElementById('clear-all-container');
+            if (clearAllContainer) {
+                if (todayPlans.length > 0) {
+                    clearAllContainer.classList.remove('hidden');
+                } else {
+                    clearAllContainer.classList.add('hidden');
+                }
+            }
+
+            // Sortable initialization with Liquid Physics
+            if (window.sortableInstance) window.sortableInstance.destroy();
+            window.sortableInstance = new Sortable(listContainer, {
+
+                // 1. Slow down to 600ms so the movement is clearly visible
+                animation: 600,
+
+                // 2. Add "Friction" using Bezier Curve (Starts smooth, accelerates, brakes soft)
+                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+
+                delay: 150, // 减少延迟，更快响应
+                delayOnTouchOnly: true,
+                handle: ".swipe-container", // The whole card is the handle
+                filter: ".delete-action-layer, button, input", // Don't drag when clicking buttons
+                preventOnFilter: false,
+
+                // Visual classes
+                ghostClass: "sortable-ghost", // The invisible placeholder (坑)
+                chosenClass: "sortable-chosen", // The card being dragged (被拖拽的)
+                dragClass: "sortable-drag", // The floating helper (拖拽中的)
+
+                // Events
+                onStart: function(evt) {
+                    // 强烈触觉反馈
+                    if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+                    document.body.style.cursor = 'grabbing';
+                    // 添加页面级提示
+                    evt.item.classList.add('is-dragging');
+                },
+
+                onMove: function(evt) {
+                    // 实时视觉反馈
+                    return true;
+                },
+
+                onEnd: function (evt) {
+                    document.body.style.cursor = 'default';
+                    evt.item.classList.remove('is-dragging');
+
+                    const oldIndex = evt.oldIndex;
+                    const newIndex = evt.newIndex;
+
+                    if (oldIndex !== newIndex) {
+                        // Update Data Model
+                        const movedItem = todayPlans.splice(oldIndex, 1)[0];
+                        todayPlans.splice(newIndex, 0, movedItem);
+                        saveData();
+
+                        // 震动确认
+                        if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
+
+                        // Do NOT re-render here, let the animation finish naturally
+                    }
+                },
+            });
+
+            // 更新进度环
+            updateRings(todayPlans);
+        }
+
+        // ============ V12.0 手风琴详情函数 ============
+
+        function toggleCardDetails(exerciseId, event) {
+            // 如果点击的是输入框本身，不要收起
+            if (event.target.tagName === 'INPUT') return;
+            // 防止点击泡泡、按钮时触发
+            if (event.target.closest('.check-bubble') ||
+                event.target.closest('.quick-action-btn') ||
+                event.target.tagName === 'BUTTON') {
+                return;
+            }
+
+            const detailsPanel = document.getElementById(`details-${exerciseId}`);
+            const arrow = document.getElementById(`arrow-${exerciseId}`);
+
+            if (!detailsPanel) return;
+
+            const isHidden = detailsPanel.classList.contains('hidden');
+
+            if (isHidden) {
+                // 展开
+                detailsPanel.classList.remove('hidden');
+                detailsPanel.classList.add('animate-fade-in');
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
+            } else {
+                // 收起
+                detailsPanel.classList.add('hidden');
+                detailsPanel.classList.remove('animate-fade-in');
+                if (arrow) arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function updateSetDetail(exerciseId, setIndex, field, value) {
+            const plan = getTodaysPlan();
+            const exercise = plan.find(e => e.id === exerciseId);
+
+            if (!exercise || !exercise.setsDetails) return;
+
+            // 更新对应组的详情
+            exercise.setsDetails[setIndex][field] = parseFloat(value) || 0;
+
+            // 同步更新初始值（如果修改的是第一组）
+            if (setIndex === 0) {
+                if (field === 'weight') {
+                    exercise.initialWeight = parseFloat(value) || 0;
+                    exercise.weight = parseFloat(value) || 0;
+                }
+                if (field === 'reps') {
+                    exercise.reps = parseInt(value) || 10;
+                }
+            }
+
+            // 保存到本地（不重新渲染，保持输入框焦点）
+            saveTodaysPlan(plan);
+
+            // 微弱震动反馈
+            if (navigator.vibrate) {
+                navigator.vibrate(5);
+            }
+        }
+
+        // ============ 快速日志函数（加练逻辑）============
+
+        // V24.0: 通过 ID 快速记录一组（修复索引问题）
+        function quickLogSetById(exerciseId) {
+            const plan = getTodaysPlan();
+            const exercise = plan.find(ex => ex.id === exerciseId);
+
+            if (!exercise) return;
+
+            // 启动会话计时器
+            startSessionTimer();
+
+            if (exercise.type === 'cardio') {
+                // 有氧训练：切换完成状态
+                exercise.completed = !exercise.completed;
+                saveTodaysPlan(plan);
+                renderPlanList(plan);
+            } else {
+                // 力量训练：增加已完成组数
+                if (exercise.doneSets < exercise.targetSets) {
+                    exercise.doneSets++;
+                    exercise.isStarted = true; // 确保状态为进行中
+                    saveTodaysPlan(plan);
+
+                    // 震动反馈
+                    if (navigator.vibrate) navigator.vibrate(30);
+
+                    // 渲染更新后的列表
+                    renderPlanList(plan);
+
+                    // 启动智能倒计时
+                    if (exercise.doneSets < exercise.targetSets) {
+                        startSmartRestTimer(exercise, exercise.restTime || 90);
+                    } else {
+                        // 刚完成最后一组，清除倒计时并显示完成胶囊
+                        if (smartRestTimerInterval) {
+                            clearInterval(smartRestTimerInterval);
+                            smartRestTimerInterval = null;
+                        }
+                        showCompletionCapsule(exercise.name);
+                    }
+                }
+            }
+        }
+
+        // 显示完成胶囊 - Apple风格
+        let completionCapsuleTimeout = null; // 保存完成胶囊的定时器ID
+
+        function showCompletionCapsule(exerciseName) {
+            // 先清除可能正在运行的倒计时和完成胶囊定时器
+            if (smartRestTimerInterval) {
+                clearInterval(smartRestTimerInterval);
+                smartRestTimerInterval = null;
+            }
+            if (completionCapsuleTimeout) {
+                clearTimeout(completionCapsuleTimeout);
+                completionCapsuleTimeout = null;
+            }
+
+            const capsule = document.getElementById('smart-rest-capsule');
+            const capsuleBody = document.getElementById('capsule-body');
+            const timerDisplay = document.getElementById('smart-rest-timer');
+
+            if (capsule && capsuleBody && timerDisplay) {
+                // 重置所有样式
+                capsuleBody.classList.remove('border-orange-500/80', 'shadow-[0_0_40px_rgba(249,115,22,0.6)]', 'animate-pulse-fast', 'bg-[#A3FF00]/10', 'border-[#A3FF00]/30');
+                capsuleBody.classList.add('border-white/10');
+
+                // 重置文字样式
+                timerDisplay.classList.remove('text-orange-400', 'text-[#A3FF00]', 'font-black');
+
+                // 显示胶囊
+                capsule.classList.remove('hidden');
+                capsule.style.opacity = '0';
+                capsule.style.transform = 'translateY(20px)';
+
+                // Apple风格的内容 - 带图标（隐藏控制按钮）
+                // 先隐藏所有控制按钮
+                const minusBtn = document.getElementById('smart-rest-minus-btn');
+                const plusBtn = document.getElementById('smart-rest-plus-btn');
+                const skipBtn = document.getElementById('smart-rest-skip-btn');
+                if (minusBtn) minusBtn.style.display = 'none';
+                if (plusBtn) plusBtn.style.display = 'none';
+                if (skipBtn) skipBtn.style.display = 'none';
+
+                timerDisplay.innerHTML = `
+                    <div class="flex items-center justify-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#A3FF00] to-[#7ACC00] flex items-center justify-center shadow-lg">
+                            <svg class="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div class="flex flex-col items-start">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">已完成</span>
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">${exerciseName}</span>
+                        </div>
+                    </div>
+                `;
+
+                // 应用Apple风格的胶囊样式
+                capsuleBody.classList.remove('bg-zinc-900/40', 'dark:bg-black/40');
+                capsuleBody.classList.add('bg-white/80', 'dark:bg-black/80', 'backdrop-blur-2xl');
+                capsuleBody.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.1) inset';
+
+                // Apple风格优雅进入动画
+                requestAnimationFrame(() => {
+                    capsule.style.transition = 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+                    capsule.style.opacity = '1';
+                    capsule.style.transform = 'translateY(0)';
+                });
+
+                // 3秒后优雅消失
+                completionCapsuleTimeout = setTimeout(() => {
+                    // 检查是否有倒计时正在运行
+                    if (smartRestTimerInterval) {
+                        // 有倒计时在运行，切换回倒计时显示
+                        console.log('[CompletionCapsule] 检测到倒计时运行，恢复倒计时显示');
+                        capsuleBody.className = 'mx-auto max-w-[360px] h-[72px] bg-zinc-900/40 dark:bg-black/40 backdrop-blur-3xl border border-white/10 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.4)] flex items-center justify-center relative overflow-hidden transition-all duration-300';
+                        capsuleBody.style.boxShadow = '';
+                        capsule.style.opacity = '1';
+                        capsule.style.transform = '';
+                        timerDisplay.className = 'text-2xl font-black text-gray-900 dark:text-white tabular-nums tracking-wider';
+                        const minutes = Math.floor(smartRestTimeLeft / 60);
+                        const seconds = smartRestTimeLeft % 60;
+                        timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                        // 恢复按钮显示
+                        const minusBtn = document.getElementById('smart-rest-minus-btn');
+                        const plusBtn = document.getElementById('smart-rest-plus-btn');
+                        const skipBtn = document.getElementById('smart-rest-skip-btn');
+                        if (minusBtn) minusBtn.style.display = '';
+                        if (plusBtn) plusBtn.style.display = '';
+                        if (skipBtn) skipBtn.style.display = '';
+                        return;
+                    }
+
+                    capsule.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+                    capsule.style.opacity = '0';
+                    capsule.style.transform = 'translateY(-10px)';
+
+                    setTimeout(() => {
+                        capsule.classList.add('hidden');
+                        // 恢复默认样式和按钮
+                        capsuleBody.classList.add('bg-zinc-900/40', 'dark:bg-black/40');
+                        capsuleBody.classList.remove('bg-white/80', 'dark:bg-black/80', 'backdrop-blur-2xl');
+                        capsuleBody.style.boxShadow = '';
+                        capsule.style.transition = '';
+                        capsule.style.transform = '';
+
+                        // 恢复按钮显示
+                        const minusBtn = document.getElementById('smart-rest-minus-btn');
+                        const plusBtn = document.getElementById('smart-rest-plus-btn');
+                        const skipBtn = document.getElementById('smart-rest-skip-btn');
+                        if (minusBtn) minusBtn.style.display = '';
+                        if (plusBtn) plusBtn.style.display = '';
+                        if (skipBtn) skipBtn.style.display = '';
+                    }, 600);
+                }, 3000);
+            }
+        }
+
+        function quickLogSet(exerciseIndex) {
+            const plan = getTodaysPlan();
+            const exercise = plan[exerciseIndex];
+
+            if (!exercise) return;
+
+            // 启动会话计时器
+            startSessionTimer();
+
+            if (exercise.type === 'cardio') {
+                // 有氧训练：切换完成状态
+                if (exercise.completed) {
+                    // 已完成，取消完成
+                    exercise.completed = false;
+                    plan[exerciseIndex] = exercise;
+                    saveTodaysPlan(plan);
+                    updateUI();
+                } else {
+                    // 标记完成
+                    exercise.completed = true;
+
+                    // 先保存数据
+                    plan[exerciseIndex] = exercise;
+                    saveTodaysPlan(plan);
+
+                    // === V16.0 自动切换焦点到下一个未完成的卡片 ===
+                    const nextIncomplete = plan.find(ex => {
+                        if (ex.type === 'cardio') {
+                            return !ex.completed;
+                        } else {
+                            return ex.doneSets < ex.targetSets;
+                        }
+                    });
+                    if (nextIncomplete) {
+                        activeCardId = nextIncomplete.id;
+                    }
+
+                    // 使用电影级丝滑沉底动画
+                    const performSink = () => {
+                        updateUI();
+                        setTimeout(() => {
+                            showCelebrationInline(exercise.name);
+                        }, 100);
+                    };
+
+                    cinematicSinkAnimation(exercise.id, performSink);
+                }
+            } else {
+                // 力量训练
+                const nextSetNumber = exercise.doneSets + 1;
+
+                if (nextSetNumber > exercise.targetSets) {
+                    // ===== 加练逻辑：所有组都完成了 =====
+                    // 1. 新增一组
+                    exercise.targetSets = nextSetNumber;
+
+                    // 2. 获取当前重量
+                    let currentWeight = exercise.initialWeight || 0;
+                    let currentReps = exercise.reps || 10;
+
+                    // 优先使用最后一次的重量
+                    if (exercise.weightLogs && exercise.weightLogs.length > 0) {
+                        const lastLog = exercise.weightLogs[exercise.weightLogs.length - 1];
+                        currentWeight = typeof lastLog === 'object' ? lastLog.weight : lastLog;
+                        if (typeof lastLog === 'object' && lastLog.reps) {
+                            currentReps = lastLog.reps;
+                        }
+                    }
+
+                    // 3. 记录新增的组
+                    if (!exercise.weightLogs) {
+                        exercise.weightLogs = [];
+                    }
+
+                    exercise.weightLogs.push({
+                        weight: currentWeight,
+                        reps: currentReps,
+                        setNumber: nextSetNumber,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // 4. 更新完成组数
+                    exercise.doneSets = nextSetNumber;
+
+                    // 5. 强震动反馈（庆祝加练）
+                    if (navigator.vibrate) {
+                        navigator.vibrate([100, 50, 100, 50, 100]);
+                    }
+
+                    plan[exerciseIndex] = exercise;
+                    saveTodaysPlan(plan);
+                    updateUI();
+
+                } else {
+                    // ===== 正常逻辑：完成下一组 =====
+                    // 获取当前重量
+                    let currentWeight = exercise.initialWeight || 0;
+                    let currentReps = exercise.reps || 10;
+
+                    if (exercise.plannedSets && exercise.plannedSets.length >= nextSetNumber) {
+                        currentWeight = exercise.plannedSets[nextSetNumber - 1].weight;
+                        currentReps = exercise.plannedSets[nextSetNumber - 1].reps;
+                    } else if (exercise.weightLogs && exercise.weightLogs.length > 0) {
+                        const lastLog = exercise.weightLogs[exercise.weightLogs.length - 1];
+                        currentWeight = typeof lastLog === 'object' ? lastLog.weight : lastLog;
+                    }
+
+                    // 记录
+                    if (!exercise.weightLogs) {
+                        exercise.weightLogs = [];
+                    }
+
+                    exercise.weightLogs.push({
+                        weight: currentWeight,
+                        reps: currentReps,
+                        setNumber: nextSetNumber,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // 更新完成组数
+                    exercise.doneSets = nextSetNumber;
+
+                    // 震动反馈
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                    }
+
+                    plan[exerciseIndex] = exercise;
+                    saveTodaysPlan(plan);
+                    updateUI();
+
+                    // 如果还有未完成的组，启动智能倒计时
+                    if (exercise.doneSets < exercise.targetSets) {
+                        startSmartRestTimer(exercise, exercise.restTime || 90);
+                    } else {
+                        // 全部完成 - 电影级丝滑沉底动画
+                        exercise.completed = true;
+
+                        // 先保存数据
+                        plan[exerciseIndex] = exercise;
+                        saveTodaysPlan(plan);
+
+                        // === V16.0 自动切换焦点到下一个未完成的卡片 ===
+                        // 找到下一个未完成的卡片
+                        const nextIncomplete = plan.find(ex => {
+                            if (ex.type === 'cardio') {
+                                return !ex.completed;
+                            } else {
+                                return ex.doneSets < ex.targetSets;
+                            }
+                        });
+                        if (nextIncomplete) {
+                            activeCardId = nextIncomplete.id;
+                        }
+
+                        // 使用电影级丝滑沉底动画
+                        const performSink = () => {
+                            updateUI();
+                            setTimeout(() => {
+                                showCelebrationInline(exercise.name);
+                            }, 100);
+                        };
+
+                        cinematicSinkAnimation(exercise.id, performSink);
+                    }
+                }
+            }
+        }
+
+        // ============ 智能倒计时胶囊 ============
+
+        let smartRestTimerInterval = null;
+        let smartRestTimeLeft = 90;
+        let smartRestInitialDuration = 90; // 记录初始时长用于进度条计算
+
+        function startSmartRestTimer(exercise, duration) {
+            console.log('[SmartRestTimer] 启动倒计时，动作:', exercise.name, '时长:', duration);
+
+            // 清除可能正在运行的完成胶囊定时器
+            if (completionCapsuleTimeout) {
+                clearTimeout(completionCapsuleTimeout);
+                completionCapsuleTimeout = null;
+                console.log('[SmartRestTimer] 清除了完成胶囊定时器');
+            }
+
+            smartRestTimeLeft = duration;
+            smartRestInitialDuration = duration; // 保存初始时长
+
+            const capsule = document.getElementById('smart-rest-capsule');
+            const timerDisplay = document.getElementById('smart-rest-timer');
+
+            if (!capsule) {
+                console.log('[SmartRestTimer] 胶囊元素未找到！');
+                return;
+            }
+
+            // 重置心跳模式样式（恢复对称水晶）
+            const capsuleBody = document.getElementById('capsule-body');
+            if (!capsuleBody) {
+                console.log('[SmartRestTimer] capsule-body元素未找到！');
+                return;
+            }
+
+            // 彻底重置胶囊样式
+            capsuleBody.className = 'mx-auto max-w-[360px] h-[72px] bg-zinc-900/40 dark:bg-black/40 backdrop-blur-3xl border border-white/10 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.4)] flex items-center justify-center relative overflow-hidden transition-all duration-300';
+            capsuleBody.style.boxShadow = '';
+            capsule.style.opacity = '';
+            capsule.style.transform = '';
+            capsule.style.transition = '';
+
+            // 重置文字样式
+            timerDisplay.className = 'text-2xl font-black text-gray-900 dark:text-white tabular-nums tracking-wider';
+            timerDisplay.innerHTML = '';
+            timerDisplay.textContent = `${String(Math.floor(duration / 60)).padStart(2, '0')}:${String(duration % 60).padStart(2, '0')}`;
+
+            // 恢复按钮显示
+            const minusBtn = document.getElementById('smart-rest-minus-btn');
+            const plusBtn = document.getElementById('smart-rest-plus-btn');
+            const skipBtn = document.getElementById('smart-rest-skip-btn');
+            if (minusBtn) minusBtn.style.display = '';
+            if (plusBtn) plusBtn.style.display = '';
+            if (skipBtn) skipBtn.style.display = '';
+
+            // 显示胶囊
+            capsule.classList.remove('hidden');
+            console.log('[SmartRestTimer] 胶囊已显示');
+
+            // 立即更新显示
+            updateSmartRestTimerDisplay();
+
+            // 清除旧的定时器
+            if (smartRestTimerInterval) {
+                clearInterval(smartRestTimerInterval);
+            }
+
+            // 启动倒计时
+            smartRestTimerInterval = setInterval(() => {
+                smartRestTimeLeft--;
+                updateSmartRestTimerDisplay();
+
+                if (smartRestTimeLeft <= 0) {
+                    clearInterval(smartRestTimerInterval);
+                    smartRestTimerInterval = null;
+                    // 隐藏胶囊
+                    capsule.classList.add('hidden');
+                    // 重置样式（恢复对称水晶）
+                    const capsuleBody = document.getElementById('capsule-body');
+                    capsuleBody.classList.remove('border-orange-500/80', 'shadow-[0_0_40px_rgba(249,115,22,0.6)]', 'animate-pulse-fast');
+                    capsuleBody.classList.add('border-white/10');
+                    timerDisplay.classList.remove('text-orange-400');
+
+                    // 播放提示音
+                    if (navigator.vibrate) {
+                        navigator.vibrate([200, 100, 200]);
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateSmartRestTimerDisplay() {
+            const minutes = Math.floor(smartRestTimeLeft / 60);
+            const seconds = smartRestTimeLeft % 60;
+            const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            // 更新计时器文字
+            const timerDisplay = document.getElementById('smart-rest-timer');
+            timerDisplay.textContent = display;
+
+            // 最后 10 秒心跳模式
+            const capsuleBody = document.getElementById('capsule-body');
+            if (smartRestTimeLeft <= 10 && smartRestTimeLeft > 0) {
+                // 橙红色边框 + 外发光
+                capsuleBody.classList.remove('border-white/10');
+                capsuleBody.classList.add('border-orange-500/80', 'shadow-[0_0_40px_rgba(249,115,22,0.6)]', 'animate-pulse-fast');
+                // 红色数字
+                timerDisplay.classList.add('text-orange-400');
+            } else {
+                // 恢复正常样式
+                capsuleBody.classList.remove('border-orange-500/80', 'shadow-[0_0_40px_rgba(249,115,22,0.6)]', 'animate-pulse-fast');
+                capsuleBody.classList.add('border-white/10');
+                timerDisplay.classList.remove('text-orange-400');
+            }
+        }
+
+        function initSmartRestButtons() {
+            // 绑定跳过按钮
+            document.getElementById('smart-rest-skip-btn').addEventListener('click', function() {
+                clearInterval(smartRestTimerInterval);
+                smartRestTimerInterval = null;
+                const capsule = document.getElementById('smart-rest-capsule');
+                const capsuleBody = document.getElementById('capsule-body');
+                const timerDisplay = document.getElementById('smart-rest-timer');
+                capsule.classList.add('hidden');
+                // 重置样式（恢复对称水晶）
+                capsuleBody.classList.remove('border-orange-500/80', 'shadow-[0_0_40px_rgba(249,115,22,0.6)]', 'animate-pulse-fast');
+                capsuleBody.classList.add('border-white/10');
+                timerDisplay.classList.remove('text-orange-400');
+            });
+
+            // 绑定减10秒按钮
+            document.getElementById('smart-rest-minus-btn').addEventListener('click', function() {
+                if (smartRestTimeLeft > 10) {
+                    smartRestTimeLeft -= 10;
+                    // 更新初始时长，避免进度条跳动
+                    smartRestInitialDuration = Math.max(smartRestInitialDuration - 10, smartRestTimeLeft);
+                    updateSmartRestTimerDisplay();
+                    if (navigator.vibrate) {
+                        navigator.vibrate(10);
+                    }
+                }
+            });
+
+            // 绑定加10秒按钮
+            document.getElementById('smart-rest-plus-btn').addEventListener('click', function() {
+                smartRestTimeLeft += 10;
+                smartRestInitialDuration += 10; // 同步增加初始时长
+                updateSmartRestTimerDisplay();
+                if (navigator.vibrate) {
+                    navigator.vibrate(10);
+                }
+            });
+        }
+
+        // 电影级丝滑沉底动画 - FLIP技术实现
+        function cinematicSinkAnimation(exerciseId, callback) {
+            const card = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+            if (!card) {
+                console.log('[Cinematic Sink] 卡片不存在，直接执行回调');
+                if (callback) callback();
+                return;
+            }
+
+            console.log('[Cinematic Sink] 开始动画，exerciseId:', exerciseId);
+
+            // 震动反馈
+            if (navigator.vibrate) {
+                navigator.vibrate([30, 50, 30]);
+            }
+
+            // 阶段1：浮起 (600ms)
+            console.log('[Cinematic Sink] 阶段1：浮起');
+            card.classList.add('sinking-float-up');
+            card.style.zIndex = '1000';
+            card.style.position = 'relative';
+
+            setTimeout(() => {
+                // 阶段2：悬浮呼吸 (800ms)
+                console.log('[Cinematic Sink] 阶段2：悬浮呼吸');
+                card.classList.remove('sinking-float-up');
+                card.classList.add('sinking-hover-breathe');
+
+                setTimeout(() => {
+                    // 阶段3：执行排序并计算目标位置
+                    // First: 记录当前位置和状态
+                    console.log('[Cinematic Sink] 阶段3：记录位置并执行回调');
+                    const firstRect = card.getBoundingClientRect();
+                    const cardHTML = card.outerHTML; // 保存卡片的HTML
+
+                    console.log('[Cinematic Sink] 原始位置:', firstRect.top, firstRect.left);
+
+                    // 执行回调（会触发重新渲染和排序）
+                    if (callback) callback();
+
+                    // 等待DOM更新
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            // 找到更新后的卡片元素
+                            const updatedCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+                            if (!updatedCard) {
+                                console.log('[Cinematic Sink] 更新后卡片未找到');
+                                return;
+                            }
+
+                            // Last: 记录新位置
+                            const lastRect = updatedCard.getBoundingClientRect();
+                            console.log('[Cinematic Sink] 新位置:', lastRect.top, lastRect.left);
+
+                            // Invert: 计算位移并应用
+                            const deltaY = firstRect.top - lastRect.top;
+                            const deltaX = firstRect.left - lastRect.left;
+                            console.log('[Cinematic Sink] 需要移动:', deltaY, 'px (Y),', deltaX, 'px (X)');
+
+                            // 创建动画过渡
+                            updatedCard.style.transition = 'none';
+                            updatedCard.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.08)`;
+                            updatedCard.style.zIndex = '1000';
+
+                            // 强制重绘
+                            updatedCard.offsetHeight;
+
+                            // Play: 执行动画
+                            console.log('[Cinematic Sink] 执行下沉动画');
+                            requestAnimationFrame(() => {
+                                updatedCard.style.transition = 'transform 1.2s cubic-bezier(0.23, 1, 0.32, 1)';
+                                updatedCard.style.transform = 'translate(0, 0) scale(1)';
+
+                                // 阶段4：落地完成后清理
+                                setTimeout(() => {
+                                    console.log('[Cinematic Sink] 动画完成，清理样式');
+                                    updatedCard.style.zIndex = '';
+                                    updatedCard.style.transition = '';
+                                }, 1200);
+                            });
+                        });
+                    });
+                }, 800);
+            }, 600);
+        }
+
+        function showCelebrationInline(exerciseName) {
+            // 调用新的完成胶囊函数
+            showCompletionCapsule(exerciseName);
+        }
+
+        function updateRings(plan) {
+            let strengthTotal = 0;
+            let strengthCompleted = 0;
+            let cardioTotal = 0;
+            let cardioCompleted = 0;
+
+            plan.forEach(exercise => {
+                if (exercise.type === 'cardio') {
+                    cardioTotal += 1;
+                    if (exercise.completed) {
+                        cardioCompleted += 1;
+                    }
+                } else {
+                    // 默认为力量训练
+                    strengthTotal += exercise.targetSets;
+                    strengthCompleted += exercise.doneSets;
+                }
+            });
+
+            document.getElementById('total-progress').textContent = strengthCompleted + cardioCompleted;
+
+            // 力量训练外圈百分比
+            const strengthPercent = strengthTotal > 0 ? (strengthCompleted / strengthTotal) * 100 : 0;
+            const outerCircumference = 722.56;
+            const outerOffset = outerCircumference - (outerCircumference * Math.min(strengthPercent / 100, 1));
+
+            // 有氧训练内圈百分比
+            const cardioPercent = cardioTotal > 0 ? (cardioCompleted / cardioTotal) * 100 : 0;
+            const innerCircumference = 578.05;
+            const innerOffset = innerCircumference - (innerCircumference * Math.min(cardioPercent / 100, 1));
+
+            // 更新SVG圆环
+            const outerRing = document.getElementById('outer-ring');
+            const innerRing = document.getElementById('inner-ring');
+            if (outerRing) outerRing.style.strokeDashoffset = outerOffset;
+            if (innerRing) innerRing.style.strokeDashoffset = innerOffset;
+        }
+
+        function updateBodyDataDisplay() {
+            const bodyData = getBodyData();
+            document.getElementById('body-weight').textContent = bodyData.weight || '--';
+            document.getElementById('body-fat').textContent = bodyData.bodyFat || '--';
+        }
+
+        function updatePRList(plan) {
+            const prList = document.getElementById('pr-list');
+
+            if (plan.length === 0) {
+                prList.innerHTML = '<p class="text-gray-500 dark:text-zinc-600 text-sm text-center py-4">暂无记录</p>';
+                return;
+            }
+
+            let html = '';
+            plan.forEach(exercise => {
+                let shouldDisplay, detailText, progressText;
+
+                if (exercise.type === 'cardio') {
+                    // 有氧训练
+                    shouldDisplay = exercise.completed;
+                    detailText = `${exercise.duration}分钟`;
+                    progressText = '✓ 完成';
+                } else {
+                    // 力量训练
+                    shouldDisplay = exercise.doneSets > 0;
+
+                    // 计算重量显示（兼容新旧数据格式）
+                    let weightText = '';
+                    if (exercise.weightLogs && exercise.weightLogs.length > 0) {
+                        // 新格式：对象数组 [{weight, setNumber, timestamp}]
+                        const weights = exercise.weightLogs.map(log =>
+                            typeof log === 'object' ? log.weight : log
+                        );
+                        const maxWeight = Math.max(...weights);
+                        const minWeight = Math.min(...weights);
+                        if (minWeight === maxWeight) {
+                            weightText = `${maxWeight}kg `;
+                        } else {
+                            weightText = `${minWeight}-${maxWeight}kg `;
+                        }
+                    } else if (exercise.initialWeight > 0) {
+                        weightText = `${exercise.initialWeight}kg `;
+                    }
+
+                    detailText = `${weightText}${exercise.targetSets}组 × ${exercise.reps}次`;
+                    progressText = `${exercise.doneSets} / ${exercise.targetSets}`;
+                }
+
+                if (shouldDisplay) {
+                    html += `
+                        <div class="flex justify-between items-center bg-white dark:bg-black/20 rounded-xl p-3 border border-zinc-200 dark:border-white/5 shadow-sm dark:shadow-none">
+                            <div>
+                                <span class="text-gray-900 dark:text-white font-semibold">${exercise.name}</span>
+                                <p class="text-gray-500 dark:text-zinc-500 text-xs">${detailText}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-black dark:text-[#A3FF00] font-black">${progressText}</span>
+                                <p class="text-gray-500 dark:text-zinc-500 text-xs">${exercise.type === 'cardio' ? '已完成' : '组数'}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            if (!html) {
+                html = '<p class="text-gray-500 dark:text-zinc-600 text-sm text-center py-4">暂无记录</p>';
+            }
+
+            prList.innerHTML = html;
+        }
+
+        // 清空按钮事件
+        function initClearButton() {
+            document.getElementById('clear-all-btn').addEventListener('click', function() {
+                if (confirm('确定要清空今日计划吗？')) {
+                    const today = new Date().toDateString();
+                    localStorage.removeItem('ironlog_plan_' + today);
+
+                    // 同时清空新系统的数据
+                    todayPlans = [];
+                    saveData();
+                    updateUI();
+
+                    // 清空后自动展开控制面板
+                    initControlPanelState();
+                }
+            });
+        }
+
+        // 初始化 V4.0 新功能事件监听器
+        function initV4Features() {
+            // 主题切换按钮
+            const themeToggleBtn = document.getElementById('theme-toggle-btn');
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', function() {
+                    toggleTheme();
+                });
+            }
+
+            // 动作完成覆盖层 - 继续下一项按钮
+            const nextExerciseBtn = document.getElementById('next-exercise-btn');
+            if (nextExerciseBtn) {
+                nextExerciseBtn.addEventListener('click', function() {
+                    // 暂时禁用此功能
+                    console.log('Next exercise feature not yet implemented');
+                });
+            }
+
+            // 动作完成覆盖层 - 完成按钮
+            const finishExerciseBtn = document.getElementById('finish-exercise-btn');
+            if (finishExerciseBtn) {
+                finishExerciseBtn.addEventListener('click', function() {
+                    const overlay = document.getElementById('exercise-complete-overlay');
+                    if (overlay) {
+                        overlay.classList.add('hidden');
+                        overlay.style.display = 'none';
+                    }
+                });
+            }
+
+            // 结束训练按钮
+            const endSessionBtn = document.getElementById('end-session-btn');
+            if (endSessionBtn) {
+                endSessionBtn.addEventListener('click', function() {
+                    if (confirm('确定要结束今天的训练吗？')) {
+                        // 停止计时器
+                        if (sessionTimerInterval) {
+                            clearInterval(sessionTimerInterval);
+                            sessionTimerInterval = null;
+                        }
+                        sessionStartTime = null;
+                        endSessionBtn.classList.add('hidden');
+
+                        // 显示训练总结
+                        showWorkoutSummary();
+                    }
+                });
+            }
+        }
+
+        // 显示训练总结
+        function showWorkoutSummary() {
+            const plan = getTodaysPlan();
+            if (!plan || plan.length === 0) return;
+
+            // 计算统计数据
+            let totalExercises = 0;
+            let completedExercises = 0;
+            let totalSets = 0;
+            let completedSets = 0;
+
+            plan.forEach(exercise => {
+                if (exercise.type === 'cardio') {
+                    totalExercises++;
+                    if (exercise.completed) {
+                        completedExercises++;
+                    }
+                } else {
+                    totalExercises++;
+                    totalSets += exercise.targetSets;
+                    completedSets += exercise.doneSets;
+                    if (exercise.doneSets >= exercise.targetSets) {
+                        completedExercises++;
+                    }
+                }
+            });
+
+            // 格式化训练时间
+            const minutes = Math.floor(sessionElapsedTime / 60);
+            const seconds = sessionElapsedTime % 60;
+            const timeStr = `${minutes}分${seconds}秒`;
+
+            // 创建总结弹窗
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+            overlay.innerHTML = `
+                <div class="bg-white dark:bg-zinc-900 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-fade-in">
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-6 text-center">🎉 训练完成！</h2>
+
+                    <div class="space-y-4 mb-8">
+                        <div class="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
+                            <span class="text-gray-600 dark:text-zinc-400">训练时长</span>
+                            <span class="text-xl font-bold text-[#A3FF00]">${timeStr}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
+                            <span class="text-gray-600 dark:text-zinc-400">完成动作</span>
+                            <span class="text-xl font-bold text-gray-900 dark:text-white">${completedExercises}/${totalExercises}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
+                            <span class="text-gray-600 dark:text-zinc-400">完成组数</span>
+                            <span class="text-xl font-bold text-gray-900 dark:text-white">${completedSets}/${totalSets}</span>
+                        </div>
+                    </div>
+
+                    <button onclick="this.closest('.fixed').remove()" class="w-full py-4 bg-[#A3FF00] hover:bg-[#9add00] text-black font-black rounded-xl transition-all active:scale-95">
+                        太棒了！
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+
+            // 点击背景关闭
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) {
+                    overlay.remove();
+                }
+            });
+        }
+
+        // 更新日期显示 - 中文格式
+        function updateDateDisplay() {
+            const now = new Date();
+            const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const dayName = days[now.getDay()];
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            const dateStr = `${dayName} · ${month}月${date}日`;
+            document.getElementById('current-date').textContent = dateStr;
+        }
+
+        // ============ 跟练模式 ============
+
+        let currentExerciseIndex = null;
+        let currentExercise = null;
+
+        // ============ 自动计时系统 ============
+
+        let sessionStartTime = null;
+        let sessionTimerInterval = null;
+        let sessionElapsedTime = 0;
+
+        function startSessionTimer() {
+            console.log('[SessionTimer] 启动会话计时器');
+            if (sessionStartTime === null) {
+                sessionStartTime = new Date();
+                sessionTimerInterval = setInterval(updateSessionTimer, 1000);
+
+                // 显示控制元素
+                const endBtn = document.getElementById('end-session-btn');
+                const timerContainer = document.getElementById('timer-container');
+                const statusDot = document.getElementById('status-dot');
+
+                console.log('[SessionTimer] 显示控制元素');
+                console.log('[SessionTimer] endBtn:', endBtn);
+                console.log('[SessionTimer] timerContainer:', timerContainer);
+                console.log('[SessionTimer] statusDot:', statusDot);
+
+                if (endBtn) endBtn.classList.remove('hidden');
+                if (timerContainer) timerContainer.classList.remove('hidden');
+                if (statusDot) statusDot.classList.remove('hidden');
+
+                console.log('[SessionTimer] 控制元素已显示');
+            }
+        }
+
+        function updateSessionTimer() {
+            sessionElapsedTime++;
+            const minutes = Math.floor(sessionElapsedTime / 60);
+            const seconds = sessionElapsedTime % 60;
+            const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('session-timer').textContent = display;
+        }
+
+        function stopSessionTimer() {
+            if (sessionTimerInterval) {
+                clearInterval(sessionTimerInterval);
+                sessionTimerInterval = null;
+            }
+
+            if (sessionStartTime) {
+                const endTime = new Date();
+                const totalMinutes = Math.round((endTime - sessionStartTime) / 60000);
+                alert(`训练结束！总时长：${totalMinutes} 分钟`);
+
+                // 保存训练时长到 localStorage
+                const today = new Date().toDateString();
+                const sessionKey = `ironlog_session_${today}`;
+                const sessionData = {
+                    date: today,
+                    startTime: sessionStartTime.toISOString(),
+                    endTime: endTime.toISOString(),
+                    totalMinutes: totalMinutes,
+                    completedExercises: sessionElapsedTime
+                };
+                localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+            }
+
+            // 重置
+            sessionStartTime = null;
+            sessionElapsedTime = 0;
+            document.getElementById('session-timer').textContent = '00:00';
+            // 隐藏所有控制元素
+            document.getElementById('end-session-btn').classList.add('hidden');
+            document.getElementById('timer-container').classList.add('hidden');
+            document.getElementById('status-dot').classList.add('hidden');
+        }
+
+        function openWorkoutMode(index) {
+            const plan = getTodaysPlan();
+            currentExerciseIndex = index;
+            currentExercise = plan[index];
+
+            if (!currentExercise) {
+                alert('找不到训练动作，请重试');
+                return;
+            }
+
+            document.getElementById('workout-exercise-name').textContent = currentExercise.name;
+
+            if (currentExercise.type === 'cardio') {
+                // 有氧训练
+                document.getElementById('workout-target').textContent = `目标：${currentExercise.duration}分钟`;
+                // 隐藏重量输入区
+                document.querySelector('#workout-mode > div.px-8.mb-6').style.display = 'none';
+            } else {
+                // 力量训练
+                let weightText = '';
+                if (currentExercise.weightLogs && currentExercise.weightLogs.length > 0) {
+                    // 兼容新旧数据格式
+                    const weights = currentExercise.weightLogs.map(log =>
+                        typeof log === 'object' ? log.weight : log
+                    );
+                    const maxWeight = Math.max(...weights);
+                    const minWeight = Math.min(...weights);
+                    weightText = minWeight === maxWeight ? `${maxWeight}kg ` : `${minWeight}-${maxWeight}kg `;
+                } else if (currentExercise.initialWeight > 0) {
+                    weightText = `${currentExercise.initialWeight}kg `;
+                }
+
+                // 显示重量输入区并设置初始值
+                document.querySelector('#workout-mode > div.px-8.mb-6').style.display = 'block';
+
+                // 设置当前重量输入框的值（兼容新旧数据格式）
+                let currentWeight;
+                let currentReps = currentExercise.reps || 10;  // 默认次数
+                const currentSetNumber = currentExercise.doneSets;  // 当前要做的是第几组
+
+                // 优先使用 plannedSets 的数据
+                if (currentExercise.plannedSets && currentExercise.plannedSets.length > currentSetNumber) {
+                    const plannedSet = currentExercise.plannedSets[currentSetNumber];
+                    currentWeight = plannedSet.weight;
+                    currentReps = plannedSet.reps;
+                } else if (currentExercise.weightLogs && currentExercise.weightLogs.length > 0) {
+                    // 如果已经有记录的组数，使用最后一组的重量
+                    const lastLog = currentExercise.weightLogs[currentExercise.weightLogs.length - 1];
+                    currentWeight = typeof lastLog === 'object' ? lastLog.weight : lastLog;
+                } else {
+                    // 否则使用初始重量
+                    currentWeight = currentExercise.initialWeight || 0;
+                }
+
+                document.getElementById('current-set-weight').value = currentWeight;
+                document.getElementById('current-set-reps').value = currentReps;  // 设置次数输入框的默认值
+
+                // 显示上一组的重量提示
+                const historyHint = document.getElementById('weight-history-hint');
+                const lastWeightSpan = document.getElementById('last-weight');
+
+                // 优先显示上一组的实际完成数据
+                if (currentExercise.weightLogs && currentExercise.weightLogs.length > 0) {
+                    historyHint.classList.remove('hidden');
+                    const lastLog = currentExercise.weightLogs[currentExercise.weightLogs.length - 1];
+                    lastWeightSpan.textContent = typeof lastLog === 'object' ? lastLog.weight : lastLog;
+                } else if (currentExercise.plannedSets && currentExercise.plannedSets.length > 0 && currentSetNumber > 0) {
+                    // 如果还没有完成过组，但有计划数据，显示上一组的计划数据
+                    historyHint.classList.remove('hidden');
+                    lastWeightSpan.textContent = currentExercise.plannedSets[currentSetNumber - 1].weight;
+                } else {
+                    historyHint.classList.add('hidden');
+                }
+
+                // 更新目标显示中的次数
+                document.getElementById('workout-target').textContent =
+                    `目标：${weightText}${currentExercise.targetSets}组 × ${currentReps}次`;
+            }
+
+            updateWorkoutProgress();
+            updateCompleteButtonState();
+
+            document.getElementById('workout-mode').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeWorkoutMode() {
+            document.getElementById('workout-mode').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentExerciseIndex = null;
+            currentExercise = null;
+        }
+
+        function updateWorkoutProgress() {
+            if (currentExercise.type === 'cardio') {
+                // 有氧训练：显示完成状态
+                document.getElementById('workout-progress').textContent = currentExercise.completed ? '✓ 完成' : '未完成';
+            } else {
+                // 力量训练：显示组数进度
+                document.getElementById('workout-progress').textContent = `${currentExercise.doneSets} / ${currentExercise.targetSets}`;
+            }
+        }
+
+        function updateCompleteButtonState() {
+            const btn = document.getElementById('complete-set-btn');
+
+            if (currentExercise.type === 'cardio') {
+                // 有氧训练：已完成则禁用
+                if (currentExercise.completed) {
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.classList.remove('hover:shadow-lg');
+                    btn.disabled = true;
+                } else {
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.classList.add('hover:shadow-lg');
+                    btn.disabled = false;
+                }
+            } else {
+                // 力量训练：检查是否完成所有组数
+                if (currentExercise.doneSets >= currentExercise.targetSets) {
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.classList.remove('hover:shadow-lg');
+                    btn.disabled = true;
+                } else {
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.classList.add('hover:shadow-lg');
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        function initWorkoutMode() {
+            const completeBtn = document.getElementById('complete-set-btn');
+            const closeBtn = document.getElementById('close-workout-btn');
+
+            completeBtn.addEventListener('click', function() {
+                if (!currentExercise) return;
+
+                // 第一次完成一组时，启动计时器
+                startSessionTimer();
+
+                if (currentExercise.type === 'cardio') {
+                    // 有氧训练：直接标记完成
+                    if (currentExercise.completed) {
+                        return;
+                    }
+
+                    currentExercise.completed = true;
+
+                    const plan = getTodaysPlan();
+                    plan[currentExerciseIndex] = currentExercise;
+                    saveTodaysPlan(plan);
+
+                    updateWorkoutProgress();
+                    updateCompleteButtonState();
+
+                    // 显示动作完成覆盖层
+                    showExerciseCompleteOverlay();
+                } else {
+                    // 力量训练：检查是否已完成
+                    if (currentExercise.doneSets >= currentExercise.targetSets) {
+                        return;
+                    }
+
+                    // 获取当前重量和次数
+                    const currentWeight = parseFloat(document.getElementById('current-set-weight').value) || 0;
+                    const currentReps = parseInt(document.getElementById('current-set-reps').value) || currentExercise.reps;
+
+                    if (!currentExercise.weightLogs) {
+                        currentExercise.weightLogs = [];
+                    }
+
+                    // 记录详细的重量日志，包含实际完成的次数
+                    currentExercise.weightLogs.push({
+                        weight: currentWeight,
+                        reps: currentReps,
+                        setNumber: currentExercise.doneSets + 1,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // 立即增加组数并保存
+                    currentExercise.doneSets++;
+
+                    const plan = getTodaysPlan();
+                    plan[currentExerciseIndex] = currentExercise;
+                    saveTodaysPlan(plan);
+
+                    updateWorkoutProgress();
+                    updateCompleteButtonState();
+
+                    // 检查是否完成所有组数
+                    if (currentExercise.doneSets >= currentExercise.targetSets) {
+                        // 全部完成！显示动作完成覆盖层
+                        showExerciseCompleteOverlay();
+                    } else {
+                        // 还有组数未完成，开始倒计时
+                        startRestTimer();
+                    }
+                }
+            });
+
+            closeBtn.addEventListener('click', function() {
+                closeWorkoutMode();
+                updateUI();
+            });
+        }
+
+        // ============ 休息倒计时 ============
+
+        let timerInterval = null;
+        let timeLeft = 90;
+        let isTimerMinimized = false;  // 跟踪倒计时是否最小化
+
+        function startRestTimer() {
+            // 使用当前动作的休息时间
+            const restTime = currentExercise.restTime || 90;
+            timeLeft = restTime;
+            isTimerMinimized = false;  // 重置最小化状态
+
+            const overlay = document.getElementById('rest-timer-overlay');
+            const timerBar = document.getElementById('rest-timer-bar');
+            const nextSetPreview = document.getElementById('next-set-preview');
+
+            // 隐藏悬浮条，显示全屏遮罩
+            timerBar.classList.add('hidden');
+            overlay.classList.remove('hidden');
+            overlay.style.display = 'flex';
+            overlay.style.zIndex = '9999';
+
+            // 显示下一组预告
+            updateNextSetPreview(nextSetPreview);
+
+            // 清除旧的定时器
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            // 使用局部变量确保倒计时正常工作
+            let countdown = restTime;
+
+            // 立即更新一次显示
+            updateTimerDisplay(countdown);
+
+            timerInterval = setInterval(() => {
+                countdown--;
+                timeLeft = countdown;
+
+                updateTimerDisplay(countdown);
+
+                if (countdown <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    completeSetAndStopTimer();
+                }
+            }, 1000);
+        }
+
+        // 更新下一组预告
+        function updateNextSetPreview(previewElement) {
+            if (!currentExercise || currentExercise.type === 'cardio') {
+                previewElement.classList.add('hidden');
+                return;
+            }
+
+            const nextSetNumber = currentExercise.doneSets;  // 下一组的编号
+            let nextWeight = null;
+            let nextReps = currentExercise.reps || 10;
+
+            // 优先从 plannedSets 获取下一组数据
+            if (currentExercise.plannedSets && currentExercise.plannedSets.length > nextSetNumber) {
+                nextWeight = currentExercise.plannedSets[nextSetNumber].weight;
+                nextReps = currentExercise.plannedSets[nextSetNumber].reps;
+            } else if (currentExercise.weightLogs && currentExercise.weightLogs.length > 0) {
+                // 使用当前组的重量
+                const lastLog = currentExercise.weightLogs[currentExercise.weightLogs.length - 1];
+                nextWeight = typeof lastLog === 'object' ? lastLog.weight : lastLog;
+            } else {
+                nextWeight = currentExercise.initialWeight || 0;
+            }
+
+            // 如果还有下一组，显示预告
+            if (nextSetNumber < currentExercise.targetSets) {
+                previewElement.classList.remove('hidden');
+                previewElement.innerHTML = `下一组: <span class="text-[#A3FF00] font-semibold">${nextWeight}kg × ${nextReps}</span>`;
+            } else {
+                previewElement.classList.add('hidden');
+            }
+        }
+
+        function updateTimerDisplay(countdown) {
+            const minutes = Math.floor(countdown / 60);
+            const seconds = countdown % 60;
+            const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            // 更新全屏显示
+            document.getElementById('timer-display').textContent = display;
+            // 更新悬浮条显示
+            document.getElementById('timer-bar-display').textContent = display;
+        }
+
+        function minimizeTimer() {
+            isTimerMinimized = true;
+            const overlay = document.getElementById('rest-timer-overlay');
+            const timerBar = document.getElementById('rest-timer-bar');
+
+            // 隐藏全屏遮罩
+            overlay.classList.add('hidden');
+            overlay.style.display = 'none';
+
+            // 显示悬浮条
+            timerBar.classList.remove('hidden');
+        }
+
+        function maximizeTimer() {
+            isTimerMinimized = false;
+            const overlay = document.getElementById('rest-timer-overlay');
+            const timerBar = document.getElementById('rest-timer-bar');
+
+            // 隐藏悬浮条
+            timerBar.classList.add('hidden');
+
+            // 显示全屏遮罩
+            overlay.classList.remove('hidden');
+            overlay.style.display = 'flex';
+        }
+
+        function completeSetAndStopTimer() {
+            // 倒计时结束，只需停止计时器
+            // 组数已经在点击按钮时增加了
+            stopRestTimer();
+        }
+
+        function stopRestTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            isTimerMinimized = false;
+
+            const overlay = document.getElementById('rest-timer-overlay');
+            const timerBar = document.getElementById('rest-timer-bar');
+            const nextSetPreview = document.getElementById('next-set-preview');
+
+            // 隐藏全屏遮罩和悬浮条
+            overlay.classList.add('hidden');
+            overlay.style.display = 'none';
+            overlay.style.zIndex = '';
+
+            timerBar.classList.add('hidden');
+            nextSetPreview.classList.add('hidden');  // 隐藏下一组预告
+        }
+
+        // ============ 庆祝弹窗 ============
+
+        function showExerciseCompleteOverlay() {
+            document.getElementById('completed-exercise-name').textContent = currentExercise.name;
+            document.getElementById('exercise-complete-overlay').classList.remove('hidden');
+            document.getElementById('exercise-complete-overlay').style.display = 'flex';
+
+            // 查找下一个未完成的动作
+            const plan = getTodaysPlan();
+            const nextExercise = findNextIncompleteExercise(plan, currentExerciseIndex);
+            const nextBtn = document.getElementById('next-exercise-btn');
+
+            if (nextExercise) {
+                nextBtn.textContent = `继续：${nextExercise.name}`;
+                nextBtn.classList.remove('hidden');
+            } else {
+                nextBtn.classList.add('hidden');
+            }
+        }
+
+        function findNextIncompleteExercise(plan, currentIndex) {
+            for (let i = currentIndex + 1; i < plan.length; i++) {
+                const exercise = plan[i];
+                if (exercise.type === 'cardio') {
+                    if (!exercise.completed) {
+                        return exercise;
+                    }
+                } else {
+                    if (exercise.doneSets < exercise.targetSets) {
+                        return exercise;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function showCelebration() {
+            document.getElementById('celebration-text').textContent = `${currentExercise.name}完成！`;
+            document.getElementById('celebration-overlay').classList.remove('hidden');
+        }
+
+        function hideCelebration() {
+            document.getElementById('celebration-overlay').classList.add('hidden');
+            closeWorkoutMode();
+            updateUI();
+        }
+
+        function initRestTimerOverlay() {
+            // 全屏遮罩的跳过按钮
+            document.getElementById('skip-rest-btn').addEventListener('click', function() {
+                completeSetAndStopTimer();
+            });
+
+            // 全屏遮罩的缩小按钮
+            document.getElementById('minimize-timer-btn').addEventListener('click', function() {
+                minimizeTimer();
+            });
+
+            // 悬浮条的跳过按钮
+            document.getElementById('timer-bar-skip-btn').addEventListener('click', function() {
+                completeSetAndStopTimer();
+            });
+
+            // 悬浮条的最大化按钮
+            document.getElementById('timer-bar-expand-btn').addEventListener('click', function() {
+                maximizeTimer();
+            });
+
+            document.getElementById('add-30s-btn').addEventListener('click', function() {
+                // 添加30秒
+                timeLeft += 30;
+                // 更新显示
+                updateTimerDisplay(timeLeft);
+            });
+
+            document.getElementById('celebration-ok-btn').addEventListener('click', function() {
+                hideCelebration();
+            });
+        }
+
+        // ============ 标签页切换 ============
+
+        function initTabNavigation() {
+            const navItems = document.querySelectorAll('.nav-item');
+
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const tabName = this.dataset.tab;
+                    updateTab(tabName);
+                });
+            });
+
+            // 恢复上次选择的 tab
+            const lastTab = localStorage.getItem('ironlog_last_tab') || 'workout';
+            updateTab(lastTab);
+        }
+
+        function updateTab(tabId) {
+            // 1. 切换 Tab 内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.toggle('hidden', content.id !== `tab-${tabId}`);
+                content.classList.toggle('active', content.id === `tab-${tabId}`);
+            });
+
+            // 2. 更新导航样式 (Liquid Capsule Logic)
+            document.querySelectorAll('.nav-item').forEach(item => {
+                const isActive = item.dataset.tab === tabId;
+
+                // 切换 Active 状态钩子 (用于触发 CSS 动画)
+                item.classList.toggle('nav-active', isActive);
+
+                // 清除所有颜色类
+                item.classList.remove(
+                    'bg-black/5', 'text-black', // Light Active
+                    'text-gray-400', // Light Inactive
+                    'dark:bg-[#A3FF00]/15', 'dark:text-[#A3FF00]', // Dark Active (光晕化)
+                    'dark:text-zinc-500' // Dark Inactive
+                );
+
+                if (isActive) {
+                    // === 选中状态 ===
+                    // Light: 极淡灰底 + 黑字 (Apple Style)
+                    // Dark: 15%透明度荧光绿光晕 + 荧光绿字
+                    item.classList.add('bg-black/5', 'text-black', 'dark:bg-[#A3FF00]/15', 'dark:text-[#A3FF00]');
+
+                    // 图标填充切换 (选中时变实心)
+                    const icon = item.querySelector('svg');
+                    if(icon) icon.setAttribute('fill', 'currentColor');
+
+                } else {
+                    // === 未选中状态 ===
+                    // 纯色文字，无背景
+                    item.classList.add('text-gray-400', 'dark:text-zinc-500');
+
+                    // 图标恢复线框
+                    const icon = item.querySelector('svg');
+                    if(icon) icon.setAttribute('fill', 'none');
+                }
+            });
+
+            // 3. 特殊页面初始化
+            if (tabId === 'calendar') {
+                renderCalendar();
+            }
+
+            localStorage.setItem('ironlog_last_tab', tabId);
+        }
+
+        // ============ 日历页面 ============
+
+        let currentCalendarDate = new Date();
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            const monthTitle = document.getElementById('current-month');
+
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+
+            monthTitle.textContent = `${year}年${month + 1}月`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const firstDayIndex = firstDay === 0 ? 6 : firstDay - 1;
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            let html = '';
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                html += '<div></div>';
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dateKey = new Date(dateStr).toDateString();
+                const stored = localStorage.getItem('ironlog_plan_' + dateKey);
+
+                let bgClass = 'bg-gray-100 dark:bg-white/5';
+                let textColor = 'text-gray-900 dark:text-white';
+
+                if (stored) {
+                    const plan = JSON.parse(stored);
+
+                    // 检查是否有完成的训练
+                    const hasCompleted = plan.some(ex => {
+                        if (ex.type === 'cardio') {
+                            return ex.completed;
+                        } else {
+                            return ex.doneSets > 0;
+                        }
+                    });
+
+                    // 检查是否全部完成
+                    const allCompleted = plan.length > 0 && plan.every(ex => {
+                        if (ex.type === 'cardio') {
+                            return ex.completed;
+                        } else {
+                            return ex.doneSets >= ex.targetSets;
+                        }
+                    });
+
+                    if (allCompleted) {
+                        bgClass = 'bg-[#A3FF00]';
+                        textColor = 'text-black';
+                    } else if (hasCompleted) {
+                        bgClass = 'bg-red-600/80';
+                        textColor = 'text-white';
+                    }
+                }
+
+                html += `
+                    <div class="calendar-day aspect-square ${bgClass} ${textColor} rounded-lg flex items-center justify-center cursor-pointer hover:opacity-80 transition-all" data-date="${dateStr}">
+                        <span class="text-sm font-semibold">${day}</span>
+                    </div>
+                `;
+            }
+
+            grid.innerHTML = html;
+
+            grid.querySelectorAll('.calendar-day').forEach(dayEl => {
+                dayEl.addEventListener('click', function() {
+                    const dateStr = this.dataset.date;
+                    showDateDetails(dateStr);
+                });
+            });
+        }
+
+        function showDateDetails(dateStr) {
+            const dateKey = new Date(dateStr).toDateString();
+            const stored = localStorage.getItem('ironlog_plan_' + dateKey);
+
+            const container = document.getElementById('selected-date-workout');
+            const title = document.getElementById('selected-date-title');
+            const content = document.getElementById('selected-date-content');
+
+            const date = new Date(dateStr);
+            title.textContent = `${date.getMonth() + 1}月${date.getDate()}日`;
+
+            if (!stored) {
+                content.innerHTML = '<p class="text-gray-500 dark:text-zinc-600 text-center py-4">无训练记录</p>';
+            } else {
+                const plan = JSON.parse(stored);
+                let html = '';
+
+                plan.forEach(exercise => {
+                    let isCompleted, statusClass, detailText;
+
+                    if (exercise.type === 'cardio') {
+                        // 有氧训练
+                        isCompleted = exercise.completed;
+                        statusClass = isCompleted ? 'text-[#A3FF00]' : 'text-gray-900 dark:text-white';
+                        detailText = `${exercise.duration}分钟`;
+                    } else {
+                        // 力量训练
+                        isCompleted = exercise.doneSets >= exercise.targetSets;
+                        statusClass = isCompleted ? 'text-[#A3FF00]' : 'text-gray-900 dark:text-white';
+
+                        // 计算重量显示（兼容新旧数据格式）
+                        let weightText = '';
+                        if (exercise.weightLogs && exercise.weightLogs.length > 0) {
+                            // 新格式：对象数组 [{weight, setNumber, timestamp}]
+                            const weights = exercise.weightLogs.map(log =>
+                                typeof log === 'object' ? log.weight : log
+                            );
+                            const maxWeight = Math.max(...weights);
+                            const minWeight = Math.min(...weights);
+                            if (minWeight === maxWeight) {
+                                weightText = `${maxWeight}kg `;
+                            } else {
+                                weightText = `${minWeight}-${maxWeight}kg `;
+                            }
+                        } else if (exercise.initialWeight > 0) {
+                            weightText = `${exercise.initialWeight}kg `;
+                        }
+
+                        detailText = `${weightText}${exercise.doneSets} / ${exercise.targetSets}组 × ${exercise.reps}次`;
+                    }
+
+                    html += `
+                        <div class="bg-gray-100 dark:bg-black/20 rounded-lg p-3 mb-2 border border-gray-200 dark:border-white/5">
+                            <span class="${statusClass} font-semibold">${exercise.name}</span>
+                            <p class="text-gray-500 dark:text-zinc-400 text-sm">${detailText}</p>
+                        </div>
+                    `;
+                });
+
+                content.innerHTML = html;
+            }
+
+            container.classList.remove('hidden');
+        }
+
+        function initCalendar() {
+            document.getElementById('prev-month').addEventListener('click', function() {
+                currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+                renderCalendar();
+                document.getElementById('selected-date-workout').classList.add('hidden');
+            });
+
+            document.getElementById('next-month').addEventListener('click', function() {
+                currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+                renderCalendar();
+                document.getElementById('selected-date-workout').classList.add('hidden');
+            });
+        }
+
+        // ============ 身体数据编辑 ============
+
+        function initBodyData() {
+            document.getElementById('edit-body-data-btn').addEventListener('click', function() {
+                const weight = prompt('请输入体重 (kg):');
+                const bodyFat = prompt('请输入体脂率 (%):');
+
+                if (weight !== null && weight.trim() !== '') {
+                    const bodyData = getBodyData();
+                    bodyData.weight = parseFloat(weight);
+                    bodyData.bodyFat = bodyFat ? parseFloat(bodyFat) : null;
+                    bodyData.history.push({
+                        date: new Date().toISOString(),
+                        weight: bodyData.weight,
+                        bodyFat: bodyData.bodyFat
+                    });
+                    saveBodyData(bodyData);
+                    updateBodyDataDisplay();
+                }
+            });
+        }
+
+        // ============ 组间计时器 ============
+
+        let restTimer = null;
+        let restTimeLeft = 90;
+
+        function initRestTimer() {
+            document.querySelectorAll('.rest-time-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    selectedRestTime = parseInt(this.dataset.time);
+                    restTimeLeft = selectedRestTime;
+
+                    // 更新按钮样式 - Apple 风格
+                    document.querySelectorAll('.rest-time-btn').forEach(b => {
+                        // 未选中：浅色白色+边框，深色透明
+                        b.classList.remove('bg-black', 'dark:bg-[#A3FF00]/20', 'text-white', 'dark:text-[#A3FF00]', 'border-transparent', 'dark:border-[#A3FF00]/30');
+                        b.classList.add('bg-white', 'dark:bg-black/20', 'border-zinc-200', 'dark:border-none', 'text-gray-600', 'dark:text-zinc-400');
+                    });
+                    // 选中：浅色黑色，深色荧光绿
+                    this.classList.remove('bg-white', 'dark:bg-black/20', 'border-zinc-200', 'dark:border-none', 'text-gray-600', 'dark:text-zinc-400');
+                    this.classList.add('bg-black', 'dark:bg-[#A3FF00]/20', 'text-white', 'dark:text-[#A3FF00]', 'border-transparent', 'dark:border-[#A3FF00]/30');
+
+                    updateManualTimerDisplay();
+                });
+            });
+
+            document.getElementById('start-timer-btn').addEventListener('click', function() {
+                if (restTimer) {
+                    clearInterval(restTimer);
+                    restTimer = null;
+                    this.textContent = '开始';
+                } else {
+                    this.textContent = '暂停';
+                    restTimer = setInterval(() => {
+                        restTimeLeft--;
+                        updateManualTimerDisplay();
+
+                        if (restTimeLeft <= 0) {
+                            clearInterval(restTimer);
+                            restTimer = null;
+                            this.textContent = '开始';
+
+                            if (navigator.vibrate) {
+                                navigator.vibrate([200, 100, 200]);
+                            }
+                            alert('休息时间结束！');
+                        }
+                    }, 1000);
+                }
+            });
+
+            document.getElementById('reset-timer-btn').addEventListener('click', function() {
+                if (restTimer) {
+                    clearInterval(restTimer);
+                    restTimer = null;
+                }
+                restTimeLeft = selectedRestTime;
+                updateManualTimerDisplay();
+                document.getElementById('start-timer-btn').textContent = '开始';
+            });
+
+            // 设置默认选中90秒
+            const defaultBtn = document.querySelector(`.rest-time-btn[data-time="90"]`);
+            if (defaultBtn) {
+                defaultBtn.click();
+            }
+        }
+
+        function updateManualTimerDisplay() {
+            document.getElementById('rest-timer-display').textContent = restTimeLeft;
+
+            const ring = document.getElementById('rest-timer-ring');
+            const circumference = 2 * Math.PI * 65;
+            const offset = circumference - (circumference * (restTimeLeft / selectedRestTime));
+            ring.style.strokeDashoffset = offset;
+
+            // 更新圆环颜色：浅色模式黑色，深色模式荧光绿
+            const isDark = document.documentElement.classList.contains('dark');
+            ring.style.stroke = isDark ? '#A3FF00' : '#000000';
+        }
+
+        // ============ V15.0 左滑删除功能 ============
+
+        // ============ V16.0 焦点模式全局变量 ============
+        let activeCardId = null; // 当前激活（展开）的卡片 ID
+        let foundFirstActive = false; // 是否已经找到第一个激活卡片
+
+        // ============ V19.0 辅助函数 ============
+
+        // 开始训练（展开卡片）
+        // 删除重复的函数定义，使用前面定义的 startExercise(id)
+        function collapseExercise(exerciseId) {
+            const plan = getTodaysPlan();
+            const exercise = plan.find(ex => ex.id === exerciseId);
+
+            if (exercise && exercise.isStarted && exercise.doneSets === 0) {
+                // 如果还没做任何组，允许完全收起
+                exercise.isStarted = false;
+                saveTodaysPlan(plan);
+
+                // 震动反馈
+                if (navigator.vibrate) navigator.vibrate(10);
+
+                // 重绘界面
+                if (document.startViewTransition) {
+                    document.startViewTransition(() => {
+                        renderPlanList(plan);
+                    });
+                } else {
+                    renderPlanList(plan);
+                }
+            }
+        }
+
+        // V21.1: 切换详情展开/收起状态
+        function toggleDetails(exerciseId) {
+            const plan = getTodaysPlan();
+            const exercise = plan.find(ex => ex.id === exerciseId);
+
+            if (exercise) {
+                // 切换 isDetailsOpen 状态
+                exercise.isDetailsOpen = !exercise.isDetailsOpen;
+
+                saveTodaysPlan(plan);
+
+                // 震动反馈
+                if (navigator.vibrate) navigator.vibrate(10);
+
+                // 重绘界面
+                if (document.startViewTransition) {
+                    document.startViewTransition(() => {
+                        renderPlanList(plan);
+                    });
+                } else {
+                    renderPlanList(plan);
+                }
+            }
+        }
+
+        // 切换激活卡片
+        function setActiveCard(id) {
+            // 如果点击的是当前已经激活的，或者是删除按钮区域，忽略
+            if (activeCardId === id) return;
+
+            // 震动反馈
+            if (navigator.vibrate) navigator.vibrate(30);
+
+            // 更新全局状态
+            activeCardId = id;
+
+            // 触发重绘 (利用 View Transitions 实现平滑展开/收起)
+            if (document.startViewTransition) {
+                document.startViewTransition(() => {
+                    renderPlanList(getTodaysPlan());
+                });
+            } else {
+                renderPlanList(getTodaysPlan());
+            }
+        }
+
+        // ============ V15.0 左滑删除功能 ============
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let currentSwipedCard = null; // 当前正在滑动的卡片
+
+        function handleTouchStart(e) {
+            const cardLayer = e.target.closest('.card-content-layer');
+            if (!cardLayer) return;
+
+            // 防止多指触摸干扰
+            if (e.touches.length > 1) return;
+
+            // 如果点击的是交互元素，不触发滑动
+            if (e.target.tagName === 'INPUT' ||
+                e.target.tagName === 'BUTTON' ||
+                e.target.closest('button') ||
+                e.target.closest('.check-bubble') ||
+                e.target.closest('.quick-action-btn')) {
+                return;
+            }
+
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+
+            // 1. 按下瞬间，给个微小的缩小反馈 (模拟物理按压)
+            // 注意：只变 scale，不变位置，以免影响滑动
+            cardLayer.style.transition = 'transform 0.2s';
+            cardLayer.style.transform = 'scale(0.98)';
+
+            // 关闭其他已打开的卡片
+            if (currentSwipedCard && currentSwipedCard !== cardLayer) {
+                // 重置其他卡片时，也要清除 transform
+                currentSwipedCard.style.transform = '';
+                currentSwipedCard = null;
+            }
+        }
+
+        function handleTouchMove(e) {
+            const cardLayer = e.target.closest('.card-content-layer');
+            if (!cardLayer) return;
+
+            const touchX = e.touches[0].clientX;
+            const touchY = e.touches[0].clientY;
+            const deltaX = touchX - touchStartX;
+            const deltaY = touchY - touchStartY;
+
+            // 1. 垂直滚动优先：如果是上下划，什么都不做，让浏览器滚动页面
+            if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+
+            // 2. 左滑逻辑
+            if (deltaX < 0) {
+                // 关键：一旦检测到是明显的左滑，立刻阻止默认行为
+                if (e.cancelable) e.preventDefault();
+
+                // 动态计算位移 (增加阻尼感)
+                const moveX = Math.max(deltaX, -100);
+                cardLayer.style.transform = `translateX(${moveX}px)`;
+            }
+        }
+
+        function handleTouchEnd(e) {
+            const cardLayer = e.target.closest('.card-content-layer');
+            if (!cardLayer) return;
+
+            const touchEndX = e.changedTouches[0].clientX;
+            const deltaX = touchEndX - touchStartX;
+            const threshold = -60; // 稍微增加阈值，防误触
+
+            // 2. 松手时，清除按压缩放
+            // 稍微延迟一点清除，避免动画跳变
+            setTimeout(() => {
+                // 如果没有触发左滑删除，就完全复原
+                if (deltaX >= threshold) {
+                    cardLayer.style.transform = '';
+                }
+            }, 100);
+
+            if (deltaX < threshold) {
+                // 打开删除菜单
+                cardLayer.style.transform = 'translateX(-80px)';
+                currentSwipedCard = cardLayer;
+                if (navigator.vibrate) navigator.vibrate(20);
+
+                // 检查是否点击了删除按钮
+                const swipeContainer = cardLayer.closest('.swipe-container');
+                const deleteLayer = swipeContainer?.querySelector('.delete-action-layer');
+
+                if (deleteLayer) {
+                    // 添加点击删除按钮的事件监听
+                    deleteLayer.onclick = function() {
+                        deleteExercise(swipeContainer);
+                    };
+                }
+            } else {
+                // 这一步在上面 setTimeout 里已经处理了复原，这里只需置空
+                currentSwipedCard = null;
+            }
+        }
+
+        // 删除功能
+        function deleteExercise(container) {
+            if (!container) return;
+
+            const exerciseId = container.dataset.exerciseId;
+            if (!exerciseId) return;
+
+            // 1. 震动反馈
+            if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+
+            // 2. 播放删除动画
+            const cardLayer = container.querySelector('.card-content-layer');
+            if (cardLayer) {
+                cardLayer.classList.add('being-deleted');
+            }
+
+            // 3. 等动画播完再删数据
+            setTimeout(() => {
+                const plan = getTodaysPlan();
+                const index = plan.findIndex(ex => ex.id === exerciseId);
+
+                if (index > -1) {
+                    plan.splice(index, 1);
+                    saveTodaysPlan(plan);
+                    updateUI();
+                }
+
+                // 重置当前滑动的卡片
+                currentSwipedCard = null;
+            }, 400);
+        }
+
+        function initSwipeToDelete() {
+            // 添加事件监听器（使用事件委托）
+            document.addEventListener('touchstart', handleTouchStart, { passive: false });
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd);
+
+            // 点击页面其他地方关闭已打开的卡片
+            document.addEventListener('click', function(e) {
+                if (currentSwipedCard && !e.target.closest('.swipe-container')) {
+                    currentSwipedCard.style.transform = 'translateX(0)';
+                    currentSwipedCard = null;
+                }
+            });
+        }
+
+        // ============ 初始化 ============
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 更新日期显示
+            updateDateDisplay();
+
+            // 自动修复所有localStorage中的训练数据
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('ironlog_plan_')) {
+                    try {
+                        const plan = JSON.parse(localStorage.getItem(key));
+                        let needsFix = false;
+
+                        plan.forEach(exercise => {
+                            if (exercise.type === 'cardio') {
+                                // 有氧训练数据修复
+                                if (exercise.completed === undefined || exercise.completed === null) {
+                                    exercise.completed = false;
+                                    needsFix = true;
+                                }
+                            } else {
+                                // 力量训练数据修复
+                                if (!exercise.type) {
+                                    exercise.type = 'strength';
+                                    needsFix = true;
+                                }
+                                // 修复异常的doneSets
+                                if (exercise.doneSets > 100 || exercise.doneSets === undefined || exercise.doneSets === null) {
+                                    exercise.doneSets = 0;
+                                    needsFix = true;
+                                }
+                                // 确保restTime存在
+                                if (!exercise.restTime) {
+                                    exercise.restTime = 90;
+                                    needsFix = true;
+                                }
+
+                                // 兼容旧数据结构：将 weight 迁移到 initialWeight 和 weightLogs
+                                if (exercise.weight !== undefined && exercise.weight !== null) {
+                                    // 如果有旧的 weight 字段，迁移到新结构
+                                    if (!exercise.initialWeight) {
+                                        exercise.initialWeight = exercise.weight;
+                                    }
+                                    if (!exercise.weightLogs) {
+                                        exercise.weightLogs = [];
+                                    }
+                                    // 删除旧的 weight 字段
+                                    delete exercise.weight;
+                                    needsFix = true;
+                                }
+
+                                // 确保 initialWeight 存在
+                                if (exercise.initialWeight === undefined || exercise.initialWeight === null) {
+                                    exercise.initialWeight = 0;
+                                    needsFix = true;
+                                }
+
+                                // 确保 weightLogs 存在，并兼容旧格式
+                                if (!exercise.weightLogs) {
+                                    exercise.weightLogs = [];
+                                    needsFix = true;
+                                } else if (exercise.weightLogs.length > 0 && typeof exercise.weightLogs[0] !== 'object') {
+                                    // 检测到旧格式（纯数字数组），迁移到新格式
+                                    const oldWeights = exercise.weightLogs;
+                                    exercise.weightLogs = oldWeights.map((weight, index) => ({
+                                        weight: weight,
+                                        setNumber: index + 1,
+                                        timestamp: null  // 旧数据没有时间戳
+                                    }));
+                                    needsFix = true;
+                                }
+
+                                // 确保 plannedSets 存在（如果是力量训练）
+                                if (exercise.type === 'strength' && !exercise.plannedSets) {
+                                    exercise.plannedSets = null;
+                                }
+                            }
+                        });
+
+                        if (needsFix) {
+                            localStorage.setItem(key, JSON.stringify(plan));
+                        }
+                    } catch (e) {
+                        // 静默处理错误
+                    }
+                }
+            });
+
+            initTheme();  // 初始化主题
+            initTabNavigation();
+            initRestTimer();
+            initInputConsole();
+            initClearButton();
+            initV4Features();
+            initWorkoutMode();
+            initRestTimerOverlay();
+            initCalendar();
+            initBodyData();
+            initSwipeToDelete();  // V15.0 初始化左滑删除
+
+            // V25/V26: Initialize new data system
+            initApp();
+
+            // 初始化智能休息胶囊按钮事件
+            initSmartRestButtons();
+        });
+    </script>
+</body>
+</html>

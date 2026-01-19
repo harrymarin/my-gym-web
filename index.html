@@ -46,6 +46,52 @@
             box-shadow: none !important;
         }
 
+        /* 防止滚动条导致的布局偏移 */
+        html {
+            /* overflow-y: scroll; */
+        }
+        /* body {
+            overflow-x: hidden;
+            width: 100vw;
+        } */
+
+        /* === GPU 加速优化 === */
+        /* 训练卡片容器 - GPU加速 */
+        .plan-card {
+            /* will-change: transform; */
+            /* transform: translateZ(0); */
+            /* backface-visibility: hidden; */
+            /* -webkit-backface-visibility: hidden; */
+        }
+
+        /* 添加面板动画优化 */
+        #add-panel {
+            /* will-change: opacity, transform; */
+        }
+
+        /* 新卡片添加动画 */
+        @keyframes cardSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .newly-added-card {
+            animation: cardSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* 优化transition性能 - 使用具体属性 */
+        .optimized-transition {
+            transition-property: opacity, transform;
+            transition-duration: 0.3s;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         /* === V25.0 SortableJS 动画优化 === */
         /* 关键：不要阻止 transform 动画，SortableJS 需要用它来实现丝滑位移 */
 
@@ -537,7 +583,7 @@
         <div class="max-w-md mx-auto min-h-screen px-6 py-6 pb-28 flex flex-col relative">
 
             <!-- Apple风格顶部 Header -->
-            <header class="flex justify-between items-end mb-8">
+            <header class="flex justify-between items-end mb-4">
                 <!-- 左侧：信息区 -->
                 <div class="flex flex-col">
                     <!-- Date: Uppercase, wide tracking -->
@@ -556,7 +602,7 @@
                 <!-- 右侧：Control Island -->
                 <div class="flex items-center gap-2">
                     <!-- End Button -->
-                    <button id="end-session-btn" class="hidden px-4 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded-lg text-xs font-bold whitespace-nowrap">
+                    <button id="end-session-btn" class="hidden px-4 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors duration-200 rounded-lg text-xs font-bold whitespace-nowrap">
                         结束训练
                     </button>
 
@@ -573,9 +619,9 @@
             </header>
 
             <!-- 简洁SVG进度环 -->
-            <div class="flex justify-center items-center py-10">
-                <div class="relative" style="width: 280px; height: 280px;">
-                    <svg width="280" height="280" viewBox="0 0 280 280">
+            <div class="flex justify-center items-center py-4">
+                <div class="relative" style="width: 260px; height: 260px;">
+                    <svg width="260" height="260" viewBox="0 0 280 280">
                         <defs>
                             <linearGradient id="outerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" stop-color="#A3FF00"/>
@@ -588,21 +634,21 @@
                         </defs>
 
                         <!-- 外圈轨道 -->
-                        <circle cx="140" cy="140" r="115" fill="none" stroke="#27272a" stroke-width="14" opacity="0.5"/>
+                        <circle cx="140" cy="140" r="110" fill="none" stroke="#27272a" stroke-width="14" opacity="0.5"/>
                         <!-- 内圈轨道 -->
-                        <circle cx="140" cy="140" r="92" fill="none" stroke="#27272a" stroke-width="14" opacity="0.5"/>
+                        <circle cx="140" cy="140" r="88" fill="none" stroke="#27272a" stroke-width="14" opacity="0.5"/>
 
                         <!-- 外圈进度 -->
-                        <circle id="outer-ring" cx="140" cy="140" r="115" fill="none"
+                        <circle id="outer-ring" cx="140" cy="140" r="110" fill="none"
                             stroke="url(#outerGrad)" stroke-width="14" stroke-linecap="round"
-                            stroke-dasharray="722.56" stroke-dashoffset="722.56"
+                            stroke-dasharray="691.15" stroke-dashoffset="691.15"
                             transform="rotate(-90, 140, 140)"
                             style="transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);"/>
 
                         <!-- 内圈进度 -->
-                        <circle id="inner-ring" cx="140" cy="140" r="92" fill="none"
+                        <circle id="inner-ring" cx="140" cy="140" r="88" fill="none"
                             stroke="url(#innerGrad)" stroke-width="14" stroke-linecap="round"
-                            stroke-dasharray="578.05" stroke-dashoffset="578.05"
+                            stroke-dasharray="552.92" stroke-dashoffset="552.92"
                             transform="rotate(-90, 140, 140)"
                             style="transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);"/>
                     </svg>
@@ -616,18 +662,18 @@
             </div>
 
             <!-- 精致黑金控制台 - 绿色荧光版本 -->
-            <div class="mb-3 relative w-full rounded-3xl border border-white/10 bg-[#09090b]/80 bg-gradient-to-b from-[#6EDD46]/5 to-transparent shadow-[0_0_40px_-10px_rgba(110,221,70,0.3)] backdrop-blur-xl ring-1 ring-inset ring-white/5 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]"
+            <div class="mb-6 relative w-full rounded-3xl border border-white/10 bg-[#09090b]/80 bg-gradient-to-b from-[#6EDD46]/5 to-transparent shadow-[0_0_40px_-10px_rgba(110,221,70,0.3)] backdrop-blur-xl ring-1 ring-inset ring-white/5 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]"
                  id="add-container">
 
                 <div id="add-trigger" onclick="toggleAddPanel(true)"
                      class="px-6 cursor-pointer group hover:bg-zinc-800/30 dark:hover:bg-black/30 transition-colors flex items-center justify-center gap-3 h-[60px]">
-                    <div class="w-8 h-8 rounded-full bg-zinc-800 dark:bg-black group-hover:bg-[#A3FF00] text-zinc-400 group-hover:text-black flex items-center justify-center transition-colors shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-zinc-800 dark:bg-black group-hover:bg-[#A3FF00] text-zinc-400 group-hover:text-black flex items-center justify-center transition-colors shrink-0 -mt-2.5">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     </div>
-                    <span class="text-zinc-400 dark:text-zinc-500 font-semibold group-hover:text-[#A3FF00] transition-colors text-base">添加新动作</span>
+                    <span class="text-zinc-400 dark:text-zinc-500 font-semibold group-hover:text-[#A3FF00] transition-colors text-base leading-none -mt-2.5">添加新动作</span>
                 </div>
 
-                <div id="add-panel" class="hidden opacity-0 px-4 py-3 relative transition-all duration-300" style="transform: translateY(-10px);">
+                <div id="add-panel" class="hidden opacity-0 px-4 py-3 relative optimized-transition" style="transform: translateY(-10px);">
 
                     <div class="flex items-end justify-between mb-3 gap-2">
 
@@ -638,8 +684,8 @@
 
                         <div class="flex items-center gap-2">
                             <div class="flex bg-gray-200 dark:bg-black/40 rounded-full p-0.5 border border-gray-300 dark:border-white/10 shrink-0 h-8 items-center">
-                                <button id="type-strength" onclick="selectExerciseType('strength')" class="px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-all">力量</button>
-                                <button id="type-cardio" onclick="selectExerciseType('cardio')" class="px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors flex items-center">有氧</button>
+                                <button id="type-strength" onclick="selectExerciseType('strength')" class="px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-colors duration-200">力量</button>
+                                <button id="type-cardio" onclick="selectExerciseType('cardio')" class="px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors duration-200 flex items-center">有氧</button>
                             </div>
                             <button onclick="toggleAddPanel(false)" class="w-7 h-7 rounded-full bg-gray-300 dark:bg-zinc-800/50 hover:bg-gray-400 dark:hover:bg-zinc-700 flex items-center justify-center text-gray-600 dark:text-zinc-400 transition-colors">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
@@ -678,9 +724,9 @@
                     <div id="strength-rest" class="mb-3 relative">
                         <span class="absolute -top-2.5 left-3 px-2 bg-[#18181b] dark:bg-black text-[9px] font-bold text-zinc-500 dark:text-zinc-600 tracking-wider">组间歇</span>
                         <div class="flex gap-2 h-11 pt-1">
-                            <button onclick="selectRest(60, this)" class="rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-all flex items-center justify-center">60s</button>
-                            <button onclick="selectRest(90, this)" class="rest-btn flex-1 h-full rounded-xl bg-[#A3FF00]/10 text-sm font-bold text-[#A3FF00] border border-[#A3FF00]/50 transition-all flex items-center justify-center">90s</button>
-                            <button onclick="selectRest(120, this)" class="rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-all flex items-center justify-center">120s</button>
+                            <button onclick="selectRest(60, this)" class="rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center">60s</button>
+                            <button onclick="selectRest(90, this)" class="rest-btn flex-1 h-full rounded-xl bg-[#A3FF00]/10 text-sm font-bold text-[#A3FF00] border border-[#A3FF00]/50 transition-colors duration-200 flex items-center justify-center">90s</button>
+                            <button onclick="selectRest(120, this)" class="rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center">120s</button>
                             <div class="flex-1 bg-gray-200 dark:bg-zinc-800 rounded-xl flex items-center justify-center relative h-full border border-transparent focus-within:border-gray-400 dark:focus-within:border-zinc-600 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors">
                                 <input type="number" id="config-rest-custom" placeholder="自定义" class="bg-transparent text-center w-full h-full text-sm font-bold text-gray-900 dark:text-white outline-none placeholder-zinc-500 dark:placeholder-zinc-500" oninput="onCustomRestInput()">
                             </div>
@@ -688,7 +734,7 @@
                     </div>
 
                     <button onclick="addFromCard()"
-                        class="w-full h-11 rounded-xl bg-[#A3FF00] hover:bg-[#9add00] text-black font-black text-base shadow-[0_0_20px_rgba(163,255,0,0.15)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                        class="w-full h-11 rounded-xl bg-[#A3FF00] hover:bg-[#9add00] text-black font-black text-base shadow-[0_0_20px_rgba(163,255,0,0.15)] active:scale-[0.98] transition-colors duration-200 flex items-center justify-center gap-2">
                         <span>确认添加</span>
                     </button>
                 </div>
@@ -704,7 +750,7 @@
 
             <!-- 清空按钮 -->
             <div id="clear-all-container" class="hidden mt-6 mb-8">
-                <button id="clear-all-btn" class="w-full py-2.5 bg-gray-100 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-[#A3FF00]/10 text-gray-600 dark:text-zinc-400 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-black/50 transition-all text-sm">
+                <button id="clear-all-btn" class="w-full py-2.5 bg-gray-100 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-[#A3FF00]/10 text-gray-600 dark:text-zinc-400 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-black/50 transition-colors duration-200 text-sm">
                     清空今日计划
                 </button>
             </div>
@@ -723,13 +769,13 @@
                 <div class="bg-black/60 backdrop-blur-2xl border border-[#A3FF00]/20 rounded-3xl p-6 mb-6">
                     <!-- 月份导航 -->
                     <div class="flex justify-between items-center mb-6">
-                        <button id="prev-month" class="text-white p-2 hover:bg-white/5 rounded-lg transition-all">
+                        <button id="prev-month" class="text-white p-2 hover:bg-white/5 rounded-lg transition-colors duration-200">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                             </svg>
                         </button>
                         <h3 id="current-month" class="text-xl font-bold text-white">2024年1月</h3>
-                        <button id="next-month" class="text-white p-2 hover:bg-white/5 rounded-lg transition-all">
+                        <button id="next-month" class="text-white p-2 hover:bg-white/5 rounded-lg transition-colors duration-200">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                             </svg>
@@ -796,9 +842,9 @@
 
                     <!-- 时间选择 -->
                     <div class="flex gap-2 mb-6">
-                        <button class="rest-time-btn flex-1 py-2 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 rounded-lg text-sm font-semibold transition-all hover:bg-black/50" data-time="60">60秒</button>
-                        <button class="rest-time-btn flex-1 py-2 bg-[#A3FF00]/20 text-[#A3FF00] border border-[#A3FF00]/30 rounded-lg text-sm font-semibold transition-all hover:bg-[#A3FF00]/30" data-time="90">90秒</button>
-                        <button class="rest-time-btn flex-1 py-2 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 rounded-lg text-sm font-semibold transition-all hover:bg-black/50" data-time="120">120秒</button>
+                        <button class="rest-time-btn flex-1 py-2 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 rounded-lg text-sm font-semibold transition-colors duration-200 hover:bg-black/50" data-time="60">60秒</button>
+                        <button class="rest-time-btn flex-1 py-2 bg-[#A3FF00]/20 text-[#A3FF00] border border-[#A3FF00]/30 rounded-lg text-sm font-semibold transition-colors duration-200 hover:bg-[#A3FF00]/30" data-time="90">90秒</button>
+                        <button class="rest-time-btn flex-1 py-2 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 rounded-lg text-sm font-semibold transition-colors duration-200 hover:bg-black/50" data-time="120">120秒</button>
                     </div>
 
                     <!-- 计时器显示 -->
@@ -816,10 +862,10 @@
 
                     <!-- 控制按钮 -->
                     <div class="flex gap-3">
-                        <button id="start-timer-btn" class="flex-1 py-3 bg-[#A3FF00]/20 text-[#A3FF00] font-bold rounded-xl hover:bg-[#A3FF00]/30 transition-all">
+                        <button id="start-timer-btn" class="flex-1 py-3 bg-[#A3FF00]/20 text-[#A3FF00] font-bold rounded-xl hover:bg-[#A3FF00]/30 transition-colors duration-200">
                             开始
                         </button>
-                        <button id="reset-timer-btn" class="flex-1 py-3 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 font-semibold rounded-xl hover:bg-black/50 transition-all">
+                        <button id="reset-timer-btn" class="flex-1 py-3 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 font-semibold rounded-xl hover:bg-black/50 transition-colors duration-200">
                             重置
                         </button>
                     </div>
@@ -910,7 +956,7 @@
             <p class="text-center text-neutral-500 dark:text-zinc-500 text-sm mt-6">点击完成一组</p>
         </div>
 
-        <button id="close-workout-btn" class="absolute top-4 right-4 w-12 h-12 bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-full flex items-center justify-center text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-white transition-all">
+        <button id="close-workout-btn" class="absolute top-4 right-4 w-12 h-12 bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-full flex items-center justify-center text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-white transition-colors duration-200">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
@@ -925,10 +971,10 @@
             <p id="completed-exercise-name" class="text-gray-300 dark:text-zinc-400 text-xl mb-8">深蹲</p>
 
             <div class="space-y-3 max-w-sm mx-auto">
-                <button id="next-exercise-btn" class="w-full py-4 bg-white dark:bg-[#A3FF00] text-black dark:text-black font-black text-xl rounded-xl hover:bg-zinc-100 dark:hover:bg-[#92E000] transition-all">
+                <button id="next-exercise-btn" class="w-full py-4 bg-white dark:bg-[#A3FF00] text-black dark:text-black font-black text-xl rounded-xl hover:bg-zinc-100 dark:hover:bg-[#92E000] transition-colors duration-200">
                     继续：下一项
                 </button>
-                <button id="finish-exercise-btn" class="w-full py-4 bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 text-white font-semibold text-xl rounded-xl hover:bg-white/20 dark:hover:bg-white/10 transition-all">
+                <button id="finish-exercise-btn" class="w-full py-4 bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 text-white font-semibold text-xl rounded-xl hover:bg-white/20 dark:hover:bg-white/10 transition-colors duration-200">
                     完成
                 </button>
             </div>
@@ -942,16 +988,16 @@
             <div id="timer-display" class="text-8xl font-black text-white dark:text-[#A3FF00] timer-pulse mb-8">01:30</div>
 
             <div class="flex gap-3 justify-center">
-                <button id="skip-rest-btn" class="px-8 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-all">
+                <button id="skip-rest-btn" class="px-8 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-colors duration-200">
                     跳过
                 </button>
-                <button id="minimize-timer-btn" class="px-8 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-all flex items-center gap-2">
+                <button id="minimize-timer-btn" class="px-8 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-colors duration-200 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7 7"/>
                     </svg>
                     缩小
                 </button>
-                <button id="add-30s-btn" class="px-8 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-all">
+                <button id="add-30s-btn" class="px-8 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-colors duration-200">
                     +30秒
                 </button>
             </div>
@@ -974,7 +1020,7 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button id="timer-bar-skip-btn" class="px-4 py-2 bg-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/20 transition-all">
+                    <button id="timer-bar-skip-btn" class="px-4 py-2 bg-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/20 transition-colors duration-200">
                         跳过
                     </button>
                     <button id="timer-bar-expand-btn" class="w-10 h-10 bg-[#A3FF00]/20 border border-[#A3FF00]/30 rounded-lg flex items-center justify-center">
@@ -1004,7 +1050,7 @@
 
                 <!-- 左侧：减10秒按钮 (靠右对齐) -->
                 <div class="flex justify-end">
-                    <button id="smart-rest-minus-btn" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/15 border border-white/5 active:scale-90 flex items-center justify-center transition-all text-white/60 hover:text-white group-hover:border-white/10">
+                    <button id="smart-rest-minus-btn" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/15 border border-white/5 active:scale-90 flex items-center justify-center transition-colors duration-200 text-white/60 hover:text-white group-hover:border-white/10">
                         <span class="text-[10px] font-bold tracking-tighter">-10</span>
                     </button>
                 </div>
@@ -1016,11 +1062,11 @@
 
                 <!-- 右侧：加10秒 + 跳过按钮 (靠左对齐) -->
                 <div class="flex items-center gap-3 justify-start">
-                    <button id="smart-rest-plus-btn" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/15 border border-white/5 active:scale-90 flex items-center justify-center transition-all text-white/60 hover:text-white group-hover:border-white/10">
+                    <button id="smart-rest-plus-btn" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/15 border border-white/5 active:scale-90 flex items-center justify-center transition-colors duration-200 text-white/60 hover:text-white group-hover:border-white/10">
                         <span class="text-[10px] font-bold tracking-tighter">+10</span>
                     </button>
 
-                    <button onclick="smartRestSkip()" id="smart-rest-skip-btn" class="w-8 h-8 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-90" aria-label="Skip">
+                    <button onclick="smartRestSkip()" id="smart-rest-skip-btn" class="w-8 h-8 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors duration-200 active:scale-90" aria-label="Skip">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -1036,7 +1082,7 @@
             <div class="text-6xl mb-4">🎉</div>
             <h3 id="celebration-text" class="text-3xl font-black mb-2 text-white">深蹲完成！</h3>
             <p class="text-zinc-400 mb-8">干得漂亮！</p>
-            <button id="celebration-ok-btn" class="px-12 py-3 bg-[#A3FF00]/20 text-[#A3FF00] font-bold rounded-xl hover:bg-[#A3FF00]/30 transition-all">
+            <button id="celebration-ok-btn" class="px-12 py-3 bg-[#A3FF00]/20 text-[#A3FF00] font-bold rounded-xl hover:bg-[#A3FF00]/30 transition-colors duration-200">
                 继续训练
             </button>
         </div>
@@ -1514,8 +1560,8 @@
 
             if (type === 'strength') {
                 // 按钮样式
-                strengthBtn.className = "px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-all";
-                cardioBtn.className = "px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors flex items-center";
+                strengthBtn.className = "px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-colors duration-200";
+                cardioBtn.className = "px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors duration-200 flex items-center";
 
                 // 显示/隐藏参数区域
                 strengthParams.classList.remove('hidden');
@@ -1523,8 +1569,8 @@
                 strengthRest.classList.remove('hidden');
             } else {
                 // 按钮样式
-                strengthBtn.className = "px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors flex items-center";
-                cardioBtn.className = "px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-all";
+                strengthBtn.className = "px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors duration-200 flex items-center";
+                cardioBtn.className = "px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-colors duration-200";
 
                 // 显示/隐藏参数区域
                 strengthParams.classList.add('hidden');
@@ -1592,15 +1638,15 @@
             // 清除自定义输入框
             document.getElementById('config-rest-custom').value = '';
             document.querySelectorAll('.rest-btn').forEach(b => {
-                b.className = "rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-all flex items-center justify-center";
+                b.className = "rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center";
             });
-            btn.className = "rest-btn flex-1 h-full rounded-xl bg-[#A3FF00]/10 text-sm font-bold text-[#A3FF00] border border-[#A3FF00]/50 transition-all flex items-center justify-center";
+            btn.className = "rest-btn flex-1 h-full rounded-xl bg-[#A3FF00]/10 text-sm font-bold text-[#A3FF00] border border-[#A3FF00]/50 transition-colors duration-200 flex items-center justify-center";
         }
 
         // 自定义组间歇输入时清除预设按钮选中状态
         function onCustomRestInput() {
             document.querySelectorAll('.rest-btn').forEach(b => {
-                b.className = "rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-all flex items-center justify-center";
+                b.className = "rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center";
             });
         }
 
@@ -1714,6 +1760,7 @@
                 startSessionTimer();
 
                 exercise.isStarted = true;
+                exercise.isDetailsOpen = false; // 确保不自动展开第三层
                 saveData();
                 renderTodayPlan();
                 console.log('[StartExercise] 训练已启动');
@@ -1736,14 +1783,40 @@
             }
         }
 
-        // Toggle Details Dropdown
+        // Toggle Details Dropdown (优化版：避免完全重新渲染)
         function toggleDetails(id) {
             const exercise = todayPlans.find(p => p.id === id);
             if (exercise) {
                 if (typeof exercise.isDetailsOpen === 'undefined') exercise.isDetailsOpen = false;
                 exercise.isDetailsOpen = !exercise.isDetailsOpen;
                 saveData();
-                renderTodayPlan();
+
+                // 直接操作 DOM，避免完全重新渲染
+                const card = document.querySelector(`[data-exercise-id="${id}"]`);
+                if (card) {
+                    const detailsContainer = card.querySelector('.details-container');
+                    const chevron = card.querySelector('.details-chevron');
+
+                    if (exercise.isDetailsOpen) {
+                        // 展开
+                        if (detailsContainer) {
+                            detailsContainer.style.maxHeight = detailsContainer.scrollHeight + 'px';
+                            detailsContainer.style.opacity = '1';
+                        }
+                        if (chevron) {
+                            chevron.style.transform = 'rotate(180deg)';
+                        }
+                    } else {
+                        // 收起
+                        if (detailsContainer) {
+                            detailsContainer.style.maxHeight = '0px';
+                            detailsContainer.style.opacity = '0';
+                        }
+                        if (chevron) {
+                            chevron.style.transform = 'rotate(0deg)';
+                        }
+                    }
+                }
             }
         }
 
@@ -1903,13 +1976,7 @@
                 const isExpanded = !isCompleted && (isCardio ? false : (exercise.doneSets > 0 || exercise.isStarted));
                 const showDetails = isExpanded && exercise.isDetailsOpen;
 
-                // 检查是否是新添加的卡片
-                const isNewlyAdded = exercise.id === newlyAddedCardId;
-
                 let outerClass = "swipe-container plan-card relative mb-3 overflow-hidden border border-white/10 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(110,221,70,0.3)] ring-1 ring-inset ring-white/5 transition-all duration-300 ";
-                if (isNewlyAdded) {
-                    outerClass += "card-slide-in "; // 添加滑入动画
-                }
 
                 // 根据展开状态和完成状态设置圆角
                 if (isCompleted || (!isExpanded && !isCompleted)) {
@@ -1937,10 +2004,14 @@
                 // 根据类型显示不同的副标题
                 const subtitle = isCardio
                     ? `${exercise.duration || 30} 分钟`
-                    : `${exercise.weight || exercise.initialWeight || 0} KG × ${exercise.targetSets} SETS × ${exercise.reps} REPS`;
+                    : `${exercise.weight || exercise.initialWeight || 0} KG × ${exercise.targetSets}组 × ${exercise.reps}次`;
+
+                // 检查是否是新添加的卡片
+                const isNewlyAdded = exercise.id === newlyAddedCardId;
+                const newCardAnimationClass = isNewlyAdded ? 'newly-added-card' : '';
 
                 const cardHtml = `
-                    <div class="${outerClass}" data-exercise-id="${exercise.id}" style="view-transition-name: card-${exercise.id};">
+                    <div class="${outerClass} plan-card ${newCardAnimationClass}" data-exercise-id="${exercise.id}" style="view-transition-name: card-${exercise.id};">
                          ${!isCompleted ? `<div class="delete-action-layer bg-red-500/90 backdrop-blur-xl"><div class="flex items-center gap-1 font-bold text-white mr-4"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg><span>删除</span></div></div>` : ''}
                          <div class="${innerClass}" onclick="${isCardio ? '' : `toggleDetails(${exercise.id})`}">
                               <div class="flex justify-between items-center">
@@ -1956,26 +2027,30 @@
                                               <button onclick="event.stopPropagation(); completeCardio(${exercise.id})" class="bg-[#6EDD46] hover:bg-[#5bc438] text-black font-black text-sm px-5 py-2 rounded-full shadow-lg active:scale-95 flex items-center gap-1 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>完成</button>
                                           ` : `
                                           ${!isExpanded ? `
-                                              <button onclick="event.stopPropagation(); startExercise(${exercise.id})" class="bg-[#6EDD46] hover:bg-[#5bc438] text-black font-black text-sm px-5 py-2 rounded-full shadow-lg active:scale-95 flex items-center gap-1 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>START</button>
+                                              <button onclick="event.stopPropagation(); startExercise(${exercise.id})" class="bg-[#6EDD46] hover:bg-[#5bc438] text-black font-black text-sm px-5 py-2 rounded-full shadow-lg active:scale-95 flex items-center gap-1 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>开始</button>
                                           ` : `
-                                               <div class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800/50 backdrop-blur-sm border border-white/10 text-zinc-400 transition-transform duration-300 ${showDetails ? 'rotate-180' : ''}"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>
+                                               <div class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800/50 backdrop-blur-sm border border-white/10 text-zinc-400 details-chevron transition-transform duration-300 ${showDetails ? 'rotate-180' : ''}"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>
                                           `}
                                           `}
                                       `}
                                   </div>
                               </div>
                               ${(!isCardio && isExpanded && !isCompleted) ? `
-                                  <div class="mt-5 pt-5 border-t border-white/10 animate-slide-down" onclick="event.stopPropagation()">
-                                      <div class="flex items-center justify-between gap-3 mb-4">
+                                  <div class="mt-3 pt-3">
+                                      <!-- 第二层：泡泡和+按钮（始终显示） -->
+                                      <div class="flex items-center justify-between gap-2 mb-2">
                                           <div class="flex gap-2 flex-wrap">
                                               ${Array(exercise.targetSets).fill().map((_, i) => {
                                                   const isDone = i < exercise.doneSets;
                                                   return `<button onclick="event.stopPropagation(); completeSetInline(${exercise.id}, ${i})" class="w-10 h-10 rounded-xl font-black text-sm transition-all ${isDone ? 'bg-[#6EDD46] text-black scale-100 shadow-[0_0_20px_rgba(110,221,70,0.4)]' : 'bg-[#09090b]/40 backdrop-blur-md border border-white/10 text-zinc-400 hover:bg-[#6EDD46]/10 hover:border-[#6EDD46]/40 hover:text-[#6EDD46] shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_0_20px_rgba(110,221,70,0.2)]'}">${isDone ? '✓' : i + 1}</button>`;
                                               }).join('')}
                                           </div>
-                                          <button onclick="quickLogSetById(${exercise.id})" class="flex-1 h-10 bg-[#09090b]/40 backdrop-blur-md border border-white/10 hover:bg-[#6EDD46] hover:border-[#6EDD46] hover:text-black hover:shadow-[0_0_25px_rgba(110,221,70,0.5)] text-zinc-400 rounded-xl flex items-center justify-center font-bold text-xl active:scale-95 transition-all shadow-[0_4px_12px_rgba(0,0,0,0.3)]">+</button>
+                                          <button onclick="event.stopPropagation(); quickLogSetById(${exercise.id})" class="flex-1 h-10 bg-[#09090b]/40 backdrop-blur-md border border-white/10 hover:bg-[#6EDD46] hover:border-[#6EDD46] hover:text-black hover:shadow-[0_0_25px_rgba(110,221,70,0.5)] text-zinc-400 rounded-xl flex items-center justify-center font-bold text-xl active:scale-95 transition-colors duration-200 shadow-[0_4px_12px_rgba(0,0,0,0.3)]">+</button>
                                       </div>
-                                      ${showDetails ? `<div class="space-y-1 bg-[#09090b]/30 backdrop-blur-md border border-white/5 rounded-xl p-2 animate-fade-in shadow-[0_4px_12px_rgba(0,0,0,0.2)]">${generateDetailsHtml(exercise)}<div class="text-center mt-2"><button onclick="toggleDetails(${exercise.id})" class="text-xs text-zinc-500 py-2 w-full hover:text-zinc-300">收起详情</button></div></div>` : ''}
+                                      <!-- 第三层：详情历史记录（可展开/收起） -->
+                                      <div class="details-container overflow-hidden transition-all duration-300 ease-out" style="max-height: ${showDetails ? '1000px' : '0px'}; opacity: ${showDetails ? '1' : '0'};" onclick="event.stopPropagation()">
+                                          ${showDetails ? `<div class="space-y-1 bg-[#09090b]/30 backdrop-blur-md border border-white/5 rounded-xl p-2 shadow-[0_4px_12px_rgba(0,0,0,0.2)]">${generateDetailsHtml(exercise)}<div class="text-center mt-2"><button onclick="toggleDetails(${exercise.id})" class="text-xs text-zinc-500 py-2 w-full hover:text-zinc-300">收起详情</button></div></div>` : ''}
+                                      </div>
                                   </div>
                               ` : ''}
                          </div>
@@ -2151,6 +2226,7 @@
                 if (exercise.doneSets < exercise.targetSets) {
                     exercise.doneSets++;
                     exercise.isStarted = true; // 确保状态为进行中
+                    exercise.isDetailsOpen = false; // 确保不自动展开第三层
                     saveTodaysPlan(plan);
 
                     // 震动反馈
@@ -2725,14 +2801,14 @@
 
             document.getElementById('total-progress').textContent = strengthCompleted + cardioCompleted;
 
-            // 力量训练外圈百分比
+            // 力量训练外圈百分比 (r=110, 2*π*110=691.15)
             const strengthPercent = strengthTotal > 0 ? (strengthCompleted / strengthTotal) * 100 : 0;
-            const outerCircumference = 722.56;
+            const outerCircumference = 691.15;
             const outerOffset = outerCircumference - (outerCircumference * Math.min(strengthPercent / 100, 1));
 
-            // 有氧训练内圈百分比
+            // 有氧训练内圈百分比 (r=88, 2*π*88=552.92)
             const cardioPercent = cardioTotal > 0 ? (cardioCompleted / cardioTotal) * 100 : 0;
-            const innerCircumference = 578.05;
+            const innerCircumference = 552.92;
             const innerOffset = innerCircumference - (innerCircumference * Math.min(cardioPercent / 100, 1));
 
             // 更新SVG圆环
@@ -2937,7 +3013,7 @@
                         </div>
                     </div>
 
-                    <button onclick="this.closest('.fixed').remove()" class="w-full py-4 bg-[#A3FF00] hover:bg-[#9add00] text-black font-black rounded-xl transition-all active:scale-95">
+                    <button onclick="this.closest('.fixed').remove()" class="w-full py-4 bg-[#A3FF00] hover:bg-[#9add00] text-black font-black rounded-xl transition-colors duration-200 active:scale-95">
                         太棒了！
                     </button>
                 </div>
@@ -3606,7 +3682,7 @@
                 }
 
                 html += `
-                    <div class="calendar-day aspect-square ${bgClass} ${textColor} rounded-lg flex items-center justify-center cursor-pointer hover:opacity-80 transition-all" data-date="${dateStr}">
+                    <div class="calendar-day aspect-square ${bgClass} ${textColor} rounded-lg flex items-center justify-center cursor-pointer hover:opacity-80 transition-colors duration-200" data-date="${dateStr}">
                         <span class="text-sm font-semibold">${day}</span>
                     </div>
                 `;

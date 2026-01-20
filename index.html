@@ -583,7 +583,7 @@
         <div class="max-w-md mx-auto min-h-screen px-6 py-6 pb-28 flex flex-col relative">
 
             <!-- Apple风格顶部 Header -->
-            <header class="flex justify-between items-end mb-4">
+            <header class="flex justify-between items-end mb-0">
                 <!-- 左侧：信息区 -->
                 <div class="flex flex-col">
                     <!-- Date: Uppercase, wide tracking -->
@@ -619,7 +619,7 @@
             </header>
 
             <!-- 简洁SVG进度环 -->
-            <div class="flex justify-center items-center py-4">
+            <div class="flex justify-center items-center pt-0 pb-2">
                 <div class="relative" style="width: 260px; height: 260px;">
                     <svg width="260" height="260" viewBox="0 0 280 280">
                         <defs>
@@ -641,14 +641,14 @@
                         <!-- 外圈进度 -->
                         <circle id="outer-ring" cx="140" cy="140" r="110" fill="none"
                             stroke="url(#outerGrad)" stroke-width="14" stroke-linecap="round"
-                            stroke-dasharray="691.15" stroke-dashoffset="691.15"
+                            stroke-dasharray="691.15" stroke-dashoffset="684.24"
                             transform="rotate(-90, 140, 140)"
                             style="transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);"/>
 
                         <!-- 内圈进度 -->
                         <circle id="inner-ring" cx="140" cy="140" r="88" fill="none"
                             stroke="url(#innerGrad)" stroke-width="14" stroke-linecap="round"
-                            stroke-dasharray="552.92" stroke-dashoffset="552.92"
+                            stroke-dasharray="552.92" stroke-dashoffset="547.39"
                             transform="rotate(-90, 140, 140)"
                             style="transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);"/>
                     </svg>
@@ -666,7 +666,7 @@
                  id="add-container">
 
                 <div id="add-trigger" onclick="toggleAddPanel(true)"
-                     class="px-6 cursor-pointer group hover:bg-zinc-800/30 dark:hover:bg-black/30 transition-colors flex items-center justify-center gap-3 h-[60px]">
+                     class="px-6 cursor-pointer group hover:bg-zinc-800/30 dark:hover:bg-black/30 transition-colors flex items-center justify-center gap-3 h-[60px] -mt-0.5">
                     <div class="w-8 h-8 rounded-full bg-zinc-800 dark:bg-black group-hover:bg-[#A3FF00] text-zinc-400 group-hover:text-black flex items-center justify-center transition-colors shrink-0 -mt-2.5">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     </div>
@@ -697,7 +697,7 @@
                     <div id="strength-params" class="grid grid-cols-3 gap-2 mb-3">
 
                         <div class="h-14 bg-black dark:bg-black/80 rounded-xl px-3 flex items-center justify-between border border-gray-300 dark:border-zinc-800/60 relative group hover:border-[#A3FF00]/30 transition-colors">
-                            <input type="number" id="config-sets" value="4" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-14 outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]">
+                            <input type="number" id="config-sets" value="4" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-14 outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]" onchange="updateSetsDetails()">
                             <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight">组</span>
                         </div>
 
@@ -709,6 +709,23 @@
                         <div class="h-14 bg-black dark:bg-black/80 rounded-xl px-3 flex items-center justify-between border border-gray-300 dark:border-zinc-800/60 relative group hover:border-[#A3FF00]/30 transition-colors">
                             <input type="number" id="config-weight" value="20" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-full outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]">
                             <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight">KG</span>
+                        </div>
+                    </div>
+
+                    <!-- 详细设置按钮 -->
+                    <div id="advanced-sets-btn-container" class="mb-3">
+                        <button onclick="toggleAdvancedSets()" class="w-full py-2 rounded-lg bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center gap-2">
+                            <svg id="advanced-chevron" class="w-4 h-4 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                            <span>详细设置（每组独立配置）</span>
+                        </button>
+                    </div>
+
+                    <!-- 每组详细设置（默认隐藏） -->
+                    <div id="advanced-sets-container" class="hidden mb-3 max-h-48 overflow-y-auto">
+                        <div id="sets-details-list" class="space-y-2">
+                            <!-- 动态生成 -->
                         </div>
                     </div>
 
@@ -813,7 +830,7 @@
 
     <!-- ============ 我的页面 ============ -->
     <div id="tab-profile" class="tab-content">
-        <div class="min-h-screen p-4 bg-black">
+        <div class="min-h-screen pt-[5px] pb-2 px-4 bg-black">
             <div class="w-full max-w-md mx-auto">
 
                 <h2 class="text-3xl font-black text-white mb-6">我的</h2>
@@ -1548,6 +1565,54 @@
 
         let selectedRestTime = 90;
         let selectedExerciseType = 'strength'; // 默认力量
+        let isAdvancedSetsOpen = false; // 详细设置展开状态
+
+        // 切换详细设置面板
+        function toggleAdvancedSets() {
+            isAdvancedSetsOpen = !isAdvancedSetsOpen;
+            const container = document.getElementById('advanced-sets-container');
+            const chevron = document.getElementById('advanced-chevron');
+
+            if (isAdvancedSetsOpen) {
+                container.classList.remove('hidden');
+                chevron.style.transform = 'rotate(180deg)';
+                updateSetsDetails(); // 生成组列表
+            } else {
+                container.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // 更新组数详细列表
+        function updateSetsDetails() {
+            const sets = parseInt(document.getElementById('config-sets').value) || 4;
+            const defaultReps = parseInt(document.getElementById('config-reps').value) || 10;
+            const defaultWeight = parseFloat(document.getElementById('config-weight').value) || 0;
+            const listContainer = document.getElementById('sets-details-list');
+
+            if (!listContainer) return;
+
+            listContainer.innerHTML = '';
+
+            for (let i = 0; i < sets; i++) {
+                const setHtml = `
+                    <div class="flex items-center gap-2 bg-gray-100 dark:bg-zinc-900 rounded-lg p-2">
+                        <span class="text-xs font-bold text-zinc-500 w-8">第${i + 1}组</span>
+                        <div class="flex-1 flex gap-2">
+                            <div class="flex-1 bg-white dark:bg-zinc-800 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
+                                <input type="number" class="set-weight w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none" value="${defaultWeight}" placeholder="重量">
+                                <span class="text-[9px] text-zinc-500">KG</span>
+                            </div>
+                            <div class="flex-1 bg-white dark:bg-zinc-800 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
+                                <input type="number" class="set-reps w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none" value="${defaultReps}" placeholder="次数">
+                                <span class="text-[9px] text-zinc-500">次</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                listContainer.innerHTML += setHtml;
+            }
+        }
 
         // 切换运动类型
         function selectExerciseType(type) {
@@ -1557,6 +1622,8 @@
             const strengthParams = document.getElementById('strength-params');
             const cardioParams = document.getElementById('cardio-params');
             const strengthRest = document.getElementById('strength-rest');
+            const advancedSetsBtn = document.getElementById('advanced-sets-btn-container');
+            const advancedSetsContainer = document.getElementById('advanced-sets-container');
 
             if (type === 'strength') {
                 // 按钮样式
@@ -1567,6 +1634,16 @@
                 strengthParams.classList.remove('hidden');
                 cardioParams.classList.add('hidden');
                 strengthRest.classList.remove('hidden');
+
+                // 显示详细设置按钮（力量训练需要）
+                if (advancedSetsBtn) advancedSetsBtn.classList.remove('hidden');
+                // 收起详细设置面板
+                if (advancedSetsContainer) {
+                    advancedSetsContainer.classList.add('hidden');
+                    isAdvancedSetsOpen = false;
+                    const chevron = document.getElementById('advanced-chevron');
+                    if (chevron) chevron.style.transform = 'rotate(0deg)';
+                }
             } else {
                 // 按钮样式
                 strengthBtn.className = "px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors duration-200 flex items-center";
@@ -1576,6 +1653,16 @@
                 strengthParams.classList.add('hidden');
                 cardioParams.classList.remove('hidden');
                 strengthRest.classList.add('hidden');
+
+                // 隐藏详细设置按钮（有氧训练不需要）
+                if (advancedSetsBtn) advancedSetsBtn.classList.add('hidden');
+                // 隐藏详细设置面板
+                if (advancedSetsContainer) {
+                    advancedSetsContainer.classList.add('hidden');
+                    isAdvancedSetsOpen = false;
+                    const chevron = document.getElementById('advanced-chevron');
+                    if (chevron) chevron.style.transform = 'rotate(0deg)';
+                }
             }
         }
 
@@ -1694,20 +1781,34 @@
                     restTime = parseInt(customRestInput.value);
                 }
 
-                // 生成数据
+                // 生成数据 - 优先从详细设置读取，否则使用默认值
                 const setsDetails = [];
+                const weightInputs = document.querySelectorAll('.set-weight');
+                const repsInputs = document.querySelectorAll('.set-reps');
+
                 for (let i = 0; i < sets; i++) {
-                    setsDetails.push({ weight: weight, reps: reps, completed: false });
+                    let setWeight = weight;
+                    let setReps = reps;
+
+                    // 如果详细设置中有值，使用详细设置的值
+                    if (weightInputs[i] && weightInputs[i].value !== '') {
+                        setWeight = parseFloat(weightInputs[i].value) || weight;
+                    }
+                    if (repsInputs[i] && repsInputs[i].value !== '') {
+                        setReps = parseInt(repsInputs[i].value) || reps;
+                    }
+
+                    setsDetails.push({ weight: setWeight, reps: setReps, completed: false });
                 }
 
                 newPlan = {
                     id: Date.now(),
                     name: name,
                     type: 'strength',
-                    weight: weight,
-                    initialWeight: weight,
+                    weight: setsDetails[0]?.weight || weight,
+                    initialWeight: setsDetails[0]?.weight || weight,
                     targetSets: sets,
-                    reps: reps,
+                    reps: setsDetails[0]?.reps || reps,
                     restTime: restTime,
                     doneSets: 0,
                     completed: false,
@@ -1920,27 +2021,93 @@
         }
 
         // Generate details HTML for expanded view
-        function generateDetailsHtml(exercise) {
+        function generateDetailsHtml(exercise, isEditable = false) {
             if (!exercise.setsDetails) return '';
 
             let html = '';
             exercise.setsDetails.forEach((detail, i) => {
                 const isSetDone = i < exercise.doneSets;
-                html += `
-                    <div class="flex items-center justify-between p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                        <span class="text-xs font-bold text-zinc-500">第 ${i + 1} 组</span>
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-bold text-zinc-700 dark:text-zinc-300">${detail.weight} kg</span>
-                            <span class="text-xs text-zinc-500">×</span>
-                            <span class="text-sm font-bold text-zinc-700 dark:text-zinc-300">${detail.reps} 次</span>
+                const uniqueId = `${exercise.id}-${i}`;
+
+                if (isEditable) {
+                    // 可编辑模式
+                    html += `
+                        <div class="flex items-center gap-2 p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                            <span class="text-xs font-bold text-zinc-500 w-10">第${i + 1}组</span>
+                            <div class="flex-1 flex gap-2">
+                                <div class="flex-1 bg-white dark:bg-zinc-900 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
+                                    <input type="number" id="weight-${uniqueId}" class="edit-weight w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none" value="${detail.weight}" placeholder="重量">
+                                    <span class="text-[9px] text-zinc-500">KG</span>
+                                </div>
+                                <div class="flex-1 bg-white dark:bg-zinc-900 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
+                                    <input type="number" id="reps-${uniqueId}" class="edit-reps w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none" value="${detail.reps}" placeholder="次数">
+                                    <span class="text-[9px] text-zinc-500">次</span>
+                                </div>
+                            </div>
+                            <div class="${isSetDone ? 'text-[#A3FF00]' : 'text-zinc-400'}">
+                                ${isSetDone ? '✓' : '○'}
+                            </div>
                         </div>
-                        <div class="${isSetDone ? 'text-[#A3FF00]' : 'text-zinc-400'}">
-                            ${isSetDone ? '✓' : '○'}
+                    `;
+                } else {
+                    // 查看模式
+                    html += `
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                            <span class="text-xs font-bold text-zinc-500">第 ${i + 1} 组</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-bold text-zinc-700 dark:text-zinc-300">${detail.weight} kg</span>
+                                <span class="text-xs text-zinc-500">×</span>
+                                <span class="text-sm font-bold text-zinc-700 dark:text-zinc-300">${detail.reps} 次</span>
+                            </div>
+                            <div class="${isSetDone ? 'text-[#A3FF00]' : 'text-zinc-400'}">
+                                ${isSetDone ? '✓' : '○'}
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             });
             return html;
+        }
+
+        // 保存编辑的详情
+        function saveSetDetails(exerciseId) {
+            const exercise = todayPlans.find(p => p.id === exerciseId);
+            if (!exercise || !exercise.setsDetails) return;
+
+            exercise.setsDetails.forEach((detail, i) => {
+                const uniqueId = `${exerciseId}-${i}`;
+                const weightInput = document.getElementById(`weight-${uniqueId}`);
+                const repsInput = document.getElementById(`reps-${uniqueId}`);
+
+                if (weightInput && weightInput.value !== '') {
+                    detail.weight = parseFloat(weightInput.value) || detail.weight;
+                }
+                if (repsInput && repsInput.value !== '') {
+                    detail.reps = parseInt(repsInput.value) || detail.reps;
+                }
+            });
+
+            // 更新第一组的值作为默认显示
+            exercise.weight = exercise.setsDetails[0]?.weight || exercise.weight;
+            exercise.reps = exercise.setsDetails[0]?.reps || exercise.reps;
+
+            saveData();
+            renderTodayPlan();
+
+            // 震动反馈
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }
+
+        // 切换编辑模式
+        function toggleEditMode(exerciseId) {
+            const exercise = todayPlans.find(p => p.id === exerciseId);
+            if (!exercise) return;
+
+            exercise.isEditMode = !exercise.isEditMode;
+            saveData();
+            renderTodayPlan();
         }
 
         // Main render function (V25 classic: glow, Start button, drag-sort)
@@ -1972,6 +2139,7 @@
                 const isCompleted = isCardio ? exercise.completed : (exercise.doneSets >= exercise.targetSets);
                 if (typeof exercise.isStarted === 'undefined') exercise.isStarted = false;
                 if (typeof exercise.isDetailsOpen === 'undefined') exercise.isDetailsOpen = false;
+                if (typeof exercise.isEditMode === 'undefined') exercise.isEditMode = false;
 
                 const isExpanded = !isCompleted && (isCardio ? false : (exercise.doneSets > 0 || exercise.isStarted));
                 const showDetails = isExpanded && exercise.isDetailsOpen;
@@ -2049,7 +2217,29 @@
                                       </div>
                                       <!-- 第三层：详情历史记录（可展开/收起） -->
                                       <div class="details-container overflow-hidden transition-all duration-300 ease-out" style="max-height: ${showDetails ? '1000px' : '0px'}; opacity: ${showDetails ? '1' : '0'};" onclick="event.stopPropagation()">
-                                          ${showDetails ? `<div class="space-y-1 bg-[#09090b]/30 backdrop-blur-md border border-white/5 rounded-xl p-2 shadow-[0_4px_12px_rgba(0,0,0,0.2)]">${generateDetailsHtml(exercise)}<div class="text-center mt-2"><button onclick="toggleDetails(${exercise.id})" class="text-xs text-zinc-500 py-2 w-full hover:text-zinc-300">收起详情</button></div></div>` : ''}
+                                          ${showDetails ? `
+                                              <div class="space-y-2 bg-[#09090b]/30 backdrop-blur-md border border-white/5 rounded-xl p-2 shadow-[0_4px_12px_rgba(0,0,0,0.2)]">
+                                                  <!-- 编辑/保存按钮 -->
+                                                  <div class="flex gap-2 mb-2">
+                                                      ${exercise.isEditMode ?
+                                                          `<button onclick="event.stopPropagation(); saveSetDetails(${exercise.id})" class="flex-1 py-1.5 bg-[#A3FF00] hover:bg-[#9add00] text-black font-bold text-xs rounded-lg flex items-center justify-center gap-1 transition-colors">
+                                                              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                                              保存修改
+                                                          </button>` :
+                                                          `<button onclick="event.stopPropagation(); toggleEditMode(${exercise.id})" class="flex-1 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-1 transition-colors">
+                                                              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                              编辑数据
+                                                          </button>`
+                                                      }
+                                                      <button onclick="toggleDetails(${exercise.id})" class="flex-1 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-bold text-xs rounded-lg flex items-center justify-center gap-1 transition-colors">
+                                                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+                                                          收起
+                                                      </button>
+                                                  </div>
+                                                  <!-- 详情内容 -->
+                                                  ${generateDetailsHtml(exercise, exercise.isEditMode)}
+                                              </div>
+                                          ` : ''}
                                       </div>
                                   </div>
                               ` : ''}
@@ -2804,12 +2994,12 @@
             // 力量训练外圈百分比 (r=110, 2*π*110=691.15)
             const strengthPercent = strengthTotal > 0 ? (strengthCompleted / strengthTotal) * 100 : 0;
             const outerCircumference = 691.15;
-            const outerOffset = outerCircumference - (outerCircumference * Math.min(strengthPercent / 100, 1));
+            const outerOffset = outerCircumference - (outerCircumference * Math.min(Math.max(strengthPercent, 1) / 100, 1));
 
             // 有氧训练内圈百分比 (r=88, 2*π*88=552.92)
             const cardioPercent = cardioTotal > 0 ? (cardioCompleted / cardioTotal) * 100 : 0;
             const innerCircumference = 552.92;
-            const innerOffset = innerCircumference - (innerCircumference * Math.min(cardioPercent / 100, 1));
+            const innerOffset = innerCircumference - (innerCircumference * Math.min(Math.max(cardioPercent, 1) / 100, 1));
 
             // 更新SVG圆环
             const outerRing = document.getElementById('outer-ring');

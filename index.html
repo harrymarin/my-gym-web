@@ -55,6 +55,27 @@
             width: 100vw;
         } */
 
+        /* 防止移动端输入框触发缩放和偏移 */
+        input[type="number"] {
+            font-size: 16px !important;
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        /* 防止移动端页面偏移 */
+        body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+        #tab-workout, #tab-calendar, #tab-profile {
+            overflow-x: hidden;
+            width: 100%;
+        }
+
         /* === GPU 加速优化 === */
         /* 训练卡片容器 - GPU加速 */
         .plan-card {
@@ -1596,11 +1617,11 @@
                         <span class="text-xs font-bold text-zinc-500 w-8">第${i + 1}组</span>
                         <div class="flex-1 flex gap-2">
                             <div class="flex-1 bg-white dark:bg-zinc-800 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
-                                <input type="number" class="set-weight w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none" value="${defaultWeight}" placeholder="重量">
+                                <input type="number" class="set-weight w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${defaultWeight}" placeholder="重量" inputmode="decimal">
                                 <span class="text-[9px] text-zinc-500">KG</span>
                             </div>
                             <div class="flex-1 bg-white dark:bg-zinc-800 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
-                                <input type="number" class="set-reps w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none" value="${defaultReps}" placeholder="次数">
+                                <input type="number" class="set-reps w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${defaultReps}" placeholder="次数" inputmode="numeric">
                                 <span class="text-[9px] text-zinc-500">次</span>
                             </div>
                         </div>
@@ -2032,11 +2053,11 @@
                             <span class="text-xs font-bold text-zinc-500 w-10">第${i + 1}组</span>
                             <div class="flex-1 flex gap-2">
                                 <div class="flex-1 bg-white dark:bg-zinc-900 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
-                                    <input type="number" id="weight-${uniqueId}" class="edit-weight w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none" value="${detail.weight}" placeholder="重量">
+                                    <input type="number" id="weight-${uniqueId}" class="edit-weight w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${detail.weight}" placeholder="重量" inputmode="decimal">
                                     <span class="text-[9px] text-zinc-500">KG</span>
                                 </div>
                                 <div class="flex-1 bg-white dark:bg-zinc-900 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
-                                    <input type="number" id="reps-${uniqueId}" class="edit-reps w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none" value="${detail.reps}" placeholder="次数">
+                                    <input type="number" id="reps-${uniqueId}" class="edit-reps w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${detail.reps}" placeholder="次数" inputmode="numeric">
                                     <span class="text-[9px] text-zinc-500">次</span>
                                 </div>
                             </div>

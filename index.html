@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class', // <--- 核心修复点：开启手动 class 模式
             theme: {
                 extend: {
                     colors: {
@@ -134,7 +133,7 @@
             transition: none !important;
         }
 
-        html.dark .sortable-ghost {
+        .sortable-ghost {
             background: #27272a !important;
             border: 2px dashed #A3FF00 !important;
         }
@@ -491,7 +490,7 @@
             transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        html.dark .swipe-container.plan-card {
+        .swipe-container.plan-card {
             background-color: #18181b; /* 深色模式：zinc-900 实心 */
         }
 
@@ -510,7 +509,7 @@
             background-color: #ffffff !important; /* 浅色：纯白 */
         }
 
-        html.dark .plan-card:not(.is-active):not(.is-completed) .card-content-layer {
+        .plan-card:not(.is-active):not(.is-completed) .card-content-layer {
             background-color: #18181b !important; /* 深色：zinc-900 */
         }
 
@@ -551,7 +550,7 @@
             pointer-events: none;
         }
 
-        html.dark .plan-card.is-active::after {
+        .plan-card.is-active::after {
             background-color: #09090b; /* 深色模式：zinc-950 */
         }
 
@@ -595,6 +594,13 @@
             animation: slide-out-left 0.4s forwards ease-in-out;
         }
     </style>
+    <script type="text/javascript">
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "v57t2ju3m6");
+    </script>
 </head>
 <body class="font-sans tracking-wide min-h-screen bg-[#F5F5F7] dark:bg-black text-gray-900 dark:text-white transition-colors duration-300">
 
@@ -611,7 +617,7 @@
                     <p id="current-date" class="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1">MONDAY, JAN 19</p>
                     <!-- Title: Large, bold, with status dot -->
                     <div class="flex items-center gap-2">
-                        <h1 class="text-3xl font-black text-white tracking-tight">开始训练</h1>
+                        <h1 class="text-3xl font-black text-white tracking-tight" data-i18n="start_workout">开始训练</h1>
                         <!-- Pulsing status dot (only visible when training is active) -->
                         <div id="status-dot" class="hidden relative">
                             <div class="w-2 h-2 bg-[#A3FF00] rounded-full"></div>
@@ -623,7 +629,7 @@
                 <!-- 右侧：Control Island -->
                 <div class="flex items-center gap-2">
                     <!-- End Button -->
-                    <button id="end-session-btn" class="hidden px-4 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors duration-200 rounded-lg text-xs font-bold whitespace-nowrap">
+                    <button id="end-session-btn" class="hidden px-4 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors duration-200 rounded-lg text-xs font-bold whitespace-nowrap" data-i18n="end_workout">
                         结束训练
                     </button>
 
@@ -632,10 +638,11 @@
                         <span id="session-timer" class="text-sm font-mono text-[#A3FF00] tabular-nums font-semibold">00:00</span>
                     </div>
 
-                    <!-- Theme Toggle -->
-                    <button id="theme-toggle-btn" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-white transition-colors rounded-lg hover:bg-zinc-900">
-                        <span id="theme-icon" class="text-sm">🌙</span>
-                    </button>
+                    <!-- Language Switcher -->
+                    <div class="flex items-center gap-1 bg-zinc-900 border border-white/10 rounded-lg p-0.5">
+                        <button onclick="setLanguage('zh')" id="lang-zh" class="lang-btn px-2 py-1 text-xs font-bold rounded transition-colors duration-200">中</button>
+                        <button onclick="setLanguage('en')" id="lang-en" class="lang-btn px-2 py-1 text-xs font-bold rounded transition-colors duration-200">EN</button>
+                    </div>
                 </div>
             </header>
 
@@ -677,7 +684,7 @@
                     <!-- 中心文本 -->
                     <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                         <div id="total-progress" class="text-7xl font-semibold text-white tabular-nums tracking-tight" style="text-shadow: 0 2px 20px rgba(0,0,0,0.8);">0</div>
-                        <div class="text-xs font-medium text-zinc-500 mt-1 uppercase tracking-widest">今日完成</div>
+                        <div class="text-xs font-medium text-zinc-500 mt-1 uppercase tracking-widest" data-i18n="today_completed">今日完成</div>
                     </div>
                 </div>
             </div>
@@ -691,7 +698,7 @@
                     <div class="w-8 h-8 rounded-full bg-zinc-800 dark:bg-black group-hover:bg-[#A3FF00] text-zinc-400 group-hover:text-black flex items-center justify-center transition-colors shrink-0 -mt-2.5">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     </div>
-                    <span class="text-zinc-400 dark:text-zinc-500 font-semibold group-hover:text-[#A3FF00] transition-colors text-base leading-none -mt-2.5">添加新动作</span>
+                    <span class="text-zinc-400 dark:text-zinc-500 font-semibold group-hover:text-[#A3FF00] transition-colors text-base leading-none -mt-2.5" data-i18n="add_exercise">添加新动作</span>
                 </div>
 
                 <div id="add-panel" class="hidden opacity-0 px-4 py-3 relative optimized-transition" style="transform: translateY(-10px);">
@@ -699,14 +706,14 @@
                     <div class="flex items-end justify-between mb-3 gap-2">
 
                         <div class="flex-1">
-                            <input type="text" id="config-name" placeholder="动作名称"
+                            <input type="text" id="config-name" data-i18n-placeholder="exercise_name_placeholder" placeholder="动作名称"
                                 class="w-full bg-transparent text-2xl font-black text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-600 outline-none transition-colors leading-none">
                         </div>
 
                         <div class="flex items-center gap-2">
                             <div class="flex bg-gray-200 dark:bg-black/40 rounded-full p-0.5 border border-gray-300 dark:border-white/10 shrink-0 h-8 items-center">
-                                <button id="type-strength" onclick="selectExerciseType('strength')" class="px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-colors duration-200">力量</button>
-                                <button id="type-cardio" onclick="selectExerciseType('cardio')" class="px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors duration-200 flex items-center">有氧</button>
+                                <button id="type-strength" onclick="selectExerciseType('strength')" class="px-3 h-full text-[10px] font-bold text-white dark:text-black bg-gray-900 dark:bg-[#A3FF00] rounded-full flex items-center transition-colors duration-200" data-i18n="strength">力量</button>
+                                <button id="type-cardio" onclick="selectExerciseType('cardio')" class="px-3 h-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 rounded-full hover:text-zinc-300 dark:hover:text-zinc-200 transition-colors duration-200 flex items-center" data-i18n="cardio">有氧</button>
                             </div>
                             <button onclick="toggleAddPanel(false)" class="w-7 h-7 rounded-full bg-gray-300 dark:bg-zinc-800/50 hover:bg-gray-400 dark:hover:bg-zinc-700 flex items-center justify-center text-gray-600 dark:text-zinc-400 transition-colors">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
@@ -719,17 +726,17 @@
 
                         <div class="h-14 bg-black dark:bg-black/80 rounded-xl px-3 flex items-center justify-between border border-gray-300 dark:border-zinc-800/60 relative group hover:border-[#A3FF00]/30 transition-colors">
                             <input type="number" id="config-sets" value="4" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-14 outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]" onchange="updateSetsDetails()">
-                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight">组</span>
+                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight" data-i18n="sets">组</span>
                         </div>
 
                         <div class="h-14 bg-black dark:bg-black/80 rounded-xl px-3 flex items-center justify-between border border-gray-300 dark:border-zinc-800/60 relative group hover:border-[#A3FF00]/30 transition-colors">
                             <input type="number" id="config-reps" value="10" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-14 outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]">
-                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight">次</span>
+                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight" data-i18n="reps">次</span>
                         </div>
 
                         <div class="h-14 bg-black dark:bg-black/80 rounded-xl px-3 flex items-center justify-between border border-gray-300 dark:border-zinc-800/60 relative group hover:border-[#A3FF00]/30 transition-colors">
                             <input type="number" id="config-weight" value="20" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-full outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]">
-                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight">KG</span>
+                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight" data-i18n="kg">KG</span>
                         </div>
                     </div>
 
@@ -739,7 +746,7 @@
                             <svg id="advanced-chevron" class="w-4 h-4 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                             </svg>
-                            <span>详细设置（每组独立配置）</span>
+                            <span data-i18n="advanced_sets">详细设置（每组独立配置）</span>
                         </button>
                     </div>
 
@@ -754,19 +761,19 @@
                     <div id="cardio-params" class="hidden mb-3">
                         <div class="h-14 bg-black dark:bg-black/80 rounded-xl px-4 flex items-center justify-between border border-gray-300 dark:border-zinc-800/60 relative group hover:border-[#A3FF00]/30 transition-colors">
                             <input type="number" id="config-duration" value="30" class="bg-transparent text-left text-3xl font-black text-gray-900 dark:text-white w-20 outline-none z-10 focus:text-[#A3FF00] transition-colors p-0 leading-none mt-[-2px]">
-                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight">分钟</span>
+                            <span class="text-[9px] font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-widest shrink-0 text-right leading-tight" data-i18n="minutes">分钟</span>
                         </div>
                     </div>
 
                     <!-- 力量训练的组间歇（有氧时不显示） -->
                     <div id="strength-rest" class="mb-3 relative">
-                        <span class="absolute -top-2.5 left-3 px-2 bg-[#18181b] dark:bg-black text-[9px] font-bold text-zinc-500 dark:text-zinc-600 tracking-wider">组间歇</span>
+                        <span class="absolute -top-2.5 left-3 px-2 bg-[#18181b] dark:bg-black text-[9px] font-bold text-zinc-500 dark:text-zinc-600 tracking-wider" data-i18n="rest_interval">组间歇</span>
                         <div class="flex gap-2 h-11 pt-1">
                             <button onclick="selectRest(60, this)" class="rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center">60s</button>
                             <button onclick="selectRest(90, this)" class="rest-btn flex-1 h-full rounded-xl bg-[#A3FF00]/10 text-sm font-bold text-[#A3FF00] border border-[#A3FF00]/50 transition-colors duration-200 flex items-center justify-center">90s</button>
                             <button onclick="selectRest(120, this)" class="rest-btn flex-1 h-full rounded-xl bg-gray-200 dark:bg-zinc-800 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors duration-200 flex items-center justify-center">120s</button>
                             <div class="flex-1 bg-gray-200 dark:bg-zinc-800 rounded-xl flex items-center justify-center relative h-full border border-transparent focus-within:border-gray-400 dark:focus-within:border-zinc-600 hover:bg-gray-300 dark:hover:bg-zinc-700 transition-colors">
-                                <input type="number" id="config-rest-custom" placeholder="自定义" class="bg-transparent text-center w-full h-full text-sm font-bold text-gray-900 dark:text-white outline-none placeholder-zinc-500 dark:placeholder-zinc-500" oninput="onCustomRestInput()">
+                                <input type="number" id="config-rest-custom" data-i18n-placeholder="custom" placeholder="自定义" class="bg-transparent text-center w-full h-full text-sm font-bold text-gray-900 dark:text-white outline-none placeholder-zinc-500 dark:placeholder-zinc-500" oninput="onCustomRestInput()">
                             </div>
                         </div>
                     </div>
@@ -782,13 +789,13 @@
             <div id="plan-list" class="space-y-4">
                 <p id="empty-state" class="text-gray-500 dark:text-zinc-600 text-center py-8">
                     <p class="text-2xl mb-2">📋</p>
-                    <p>开始添加你的第一个训练计划</p>
+                    <p data-i18n="empty_state">开始添加你的第一个训练计划</p>
                 </p>
             </div>
 
             <!-- 清空按钮 -->
             <div id="clear-all-container" class="hidden mt-6 mb-8">
-                <button id="clear-all-btn" class="w-full py-2.5 bg-gray-100 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-[#A3FF00]/10 text-gray-600 dark:text-zinc-400 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-black/50 transition-colors duration-200 text-sm">
+                <button id="clear-all-btn" class="w-full py-2.5 bg-gray-100 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-[#A3FF00]/10 text-gray-600 dark:text-zinc-400 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-black/50 transition-colors duration-200 text-sm" data-i18n="clear_all">
                     清空今日计划
                 </button>
             </div>
@@ -800,7 +807,7 @@
     <div id="tab-calendar" class="tab-content">
         <div class="max-w-md mx-auto min-h-screen px-6 py-6 bg-black">
 
-                <h2 class="text-3xl font-black text-white mb-6">训练日历</h2>
+                <h2 class="text-3xl font-black text-white mb-6" data-i18n="calendar_title">训练日历</h2>
 
                 <!-- 月视图 -->
                 <div class="bg-black/60 backdrop-blur-2xl border border-[#A3FF00]/20 rounded-3xl p-6 mb-6">
@@ -821,13 +828,13 @@
 
                     <!-- 星期标题 -->
                     <div class="grid grid-cols-7 gap-1 mb-2">
-                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">一</div>
-                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">二</div>
-                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">三</div>
-                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">四</div>
-                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">五</div>
-                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">六</div>
-                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold">日</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold" data-i18n="monday">一</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold" data-i18n="tuesday">二</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold" data-i18n="wednesday">三</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold" data-i18n="thursday">四</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold" data-i18n="friday">五</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold" data-i18n="saturday">六</div>
+                        <div class="text-center text-gray-500 dark:text-zinc-500 text-xs font-semibold" data-i18n="sunday">日</div>
                     </div>
 
                     <!-- 日期网格 -->
@@ -851,21 +858,21 @@
     <div id="tab-profile" class="tab-content">
         <div class="max-w-md mx-auto min-h-screen px-6 py-6 bg-black">
 
-                <h2 class="text-3xl font-black text-white mb-6">我的</h2>
+                <h2 class="text-3xl font-black text-white mb-6" data-i18n="nav_profile">我的</h2>
 
                 <!-- 身体数据 -->
                 <div class="bg-black/60 backdrop-blur-2xl border border-[#A3FF00]/20 rounded-3xl p-6 mb-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-white font-bold">身体数据</h3>
-                        <button id="edit-body-data-btn" class="text-[#A3FF00] text-sm font-semibold">编辑</button>
+                        <h3 class="text-white font-bold" data-i18n="body_data">身体数据</h3>
+                        <button id="edit-body-data-btn" class="text-[#A3FF00] text-sm font-semibold" data-i18n="edit">编辑</button>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <p class="text-zinc-500 text-xs mb-1">体重</p>
+                            <p class="text-zinc-500 text-xs mb-1" data-i18n="body_weight">体重</p>
                             <p class="text-white text-2xl font-black"><span id="body-weight">--</span> kg</p>
                         </div>
                         <div>
-                            <p class="text-zinc-500 text-xs mb-1">体脂率</p>
+                            <p class="text-zinc-500 text-xs mb-1" data-i18n="body_fat_rate">体脂率</p>
                             <p class="text-white text-2xl font-black"><span id="body-fat">--</span>%</p>
                         </div>
                     </div>
@@ -873,13 +880,13 @@
 
                 <!-- 组间休息计时器 -->
                 <div class="bg-black/60 backdrop-blur-2xl border border-[#A3FF00]/20 rounded-3xl p-6 mb-6">
-                    <h3 class="text-white font-bold mb-4">组间休息计时器</h3>
+                    <h3 class="text-white font-bold mb-4" data-i18n="rest_timer">组间休息计时器</h3>
 
                     <!-- 时间选择 -->
                     <div class="flex gap-2 mb-6">
-                        <button class="rest-time-btn flex-1 py-2 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 rounded-lg text-sm font-semibold transition-colors duration-200 hover:bg-black/50" data-time="60">60秒</button>
-                        <button class="rest-time-btn flex-1 py-2 bg-[#A3FF00]/20 text-[#A3FF00] border border-[#A3FF00]/30 rounded-lg text-sm font-semibold transition-colors duration-200 hover:bg-[#A3FF00]/30" data-time="90">90秒</button>
-                        <button class="rest-time-btn flex-1 py-2 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 rounded-lg text-sm font-semibold transition-colors duration-200 hover:bg-black/50" data-time="120">120秒</button>
+                        <button class="rest-time-btn flex-1 py-2 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 rounded-lg text-sm font-semibold transition-colors duration-200 hover:bg-black/50" data-time="60" data-i18n="60s">60秒</button>
+                        <button class="rest-time-btn flex-1 py-2 bg-[#A3FF00]/20 text-[#A3FF00] border border-[#A3FF00]/30 rounded-lg text-sm font-semibold transition-colors duration-200 hover:bg-[#A3FF00]/30" data-time="90" data-i18n="90s">90秒</button>
+                        <button class="rest-time-btn flex-1 py-2 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 rounded-lg text-sm font-semibold transition-colors duration-200 hover:bg-black/50" data-time="120" data-i18n="120s">120秒</button>
                     </div>
 
                     <!-- 计时器显示 -->
@@ -897,10 +904,10 @@
 
                     <!-- 控制按钮 -->
                     <div class="flex gap-3">
-                        <button id="start-timer-btn" class="flex-1 py-3 bg-[#A3FF00]/20 text-[#A3FF00] font-bold rounded-xl hover:bg-[#A3FF00]/30 transition-colors duration-200">
+                        <button id="start-timer-btn" class="flex-1 py-3 bg-[#A3FF00]/20 text-[#A3FF00] font-bold rounded-xl hover:bg-[#A3FF00]/30 transition-colors duration-200" data-i18n="start">
                             开始
                         </button>
-                        <button id="reset-timer-btn" class="flex-1 py-3 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 font-semibold rounded-xl hover:bg-black/50 transition-colors duration-200">
+                        <button id="reset-timer-btn" class="flex-1 py-3 bg-black/40 backdrop-blur-md border border-[#A3FF00]/10 text-zinc-400 font-semibold rounded-xl hover:bg-black/50 transition-colors duration-200" data-i18n="reset">
                             重置
                         </button>
                     </div>
@@ -909,10 +916,10 @@
                 <!-- PR 记录 -->
                 <div class="bg-black/60 backdrop-blur-2xl border border-[#A3FF00]/20 rounded-3xl p-6 mb-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-white font-bold">个人记录 (PR)</h3>
+                        <h3 class="text-white font-bold" data-i18n="personal_records">个人记录 (PR)</h3>
                     </div>
                     <div id="pr-list" class="space-y-3">
-                        <p class="text-zinc-600 text-sm text-center py-4">暂无记录</p>
+                        <p class="text-zinc-600 text-sm text-center py-4" data-i18n="no_records">暂无记录</p>
                     </div>
                 </div>
 
@@ -927,7 +934,7 @@
                 <svg class="w-6 h-6 transition-transform duration-300 group-[.nav-active]:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z"/>
                 </svg>
-                <span class="overflow-hidden w-0 opacity-0 group-[.nav-active]:w-auto group-[.nav-active]:opacity-100 group-[.nav-active]:ml-2 text-[15px] font-bold whitespace-nowrap transition-all duration-300">训练</span>
+                <span class="overflow-hidden w-0 opacity-0 group-[.nav-active]:w-auto group-[.nav-active]:opacity-100 group-[.nav-active]:ml-2 text-[15px] font-bold whitespace-nowrap transition-all duration-300" data-i18n="nav_workout">训练</span>
             </button>
 
             <button class="nav-item group flex items-center gap-1 pl-4 pr-4 py-2.5 rounded-full transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]" data-tab="calendar">
@@ -937,7 +944,7 @@
                     <line x1="8" y1="2" x2="8" y2="6"></line>
                     <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
-                <span class="overflow-hidden w-0 opacity-0 group-[.nav-active]:w-auto group-[.nav-active]:opacity-100 group-[.nav-active]:ml-2 text-[15px] font-bold whitespace-nowrap transition-all duration-300">日历</span>
+                <span class="overflow-hidden w-0 opacity-0 group-[.nav-active]:w-auto group-[.nav-active]:opacity-100 group-[.nav-active]:ml-2 text-[15px] font-bold whitespace-nowrap transition-all duration-300" data-i18n="nav_calendar">日历</span>
             </button>
 
             <button class="nav-item group flex items-center gap-1 pl-4 pr-4 py-2.5 rounded-full transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]" data-tab="profile">
@@ -945,7 +952,7 @@
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                <span class="overflow-hidden w-0 opacity-0 group-[.nav-active]:w-auto group-[.nav-active]:opacity-100 group-[.nav-active]:ml-2 text-[15px] font-bold whitespace-nowrap transition-all duration-300">我的</span>
+                <span class="overflow-hidden w-0 opacity-0 group-[.nav-active]:w-auto group-[.nav-active]:opacity-100 group-[.nav-active]:ml-2 text-[15px] font-bold whitespace-nowrap transition-all duration-300" data-i18n="nav_profile">我的</span>
             </button>
 
         </div>
@@ -1123,40 +1130,240 @@
     </div>
 
     <script>
-        // ============ 主题切换系统 ============
+        // ============ 多语言翻译系统 ============
 
-        function initTheme() {
-            // 读取保存的主题偏好，默认使用深色模式
-            const savedTheme = localStorage.getItem('ironlog_theme');
-            const isDark = savedTheme === null ? true : savedTheme === 'dark';
+        // 翻译字典
+        const translations = {
+            'zh': {
+                // Header
+                'start_workout': '开始训练',
+                'end_workout': '结束训练',
 
-            const html = document.documentElement;
-            if (isDark) {
-                html.classList.add('dark');
-            } else {
-                html.classList.remove('dark');
+                // Progress
+                'today_completed': '今日完成',
+
+                // Add Panel
+                'add_exercise': '添加新动作',
+                'exercise_name_placeholder': '动作名称 (如: 深蹲)',
+                'strength': '力量',
+                'cardio': '有氧',
+                'sets': '组',
+                'reps': '次',
+                'kg': 'KG',
+                'minutes': '分钟',
+                'rest_interval': '组间歇',
+                'custom': '自定义',
+                'advanced_sets': '高级组数设置',
+                'clear_all': '清空全部',
+                'empty_state': '开始添加你的训练动作吧！',
+
+                // Week Days
+                'monday': '一',
+                'tuesday': '二',
+                'wednesday': '三',
+                'thursday': '四',
+                'friday': '五',
+                'saturday': '六',
+                'sunday': '日',
+
+                // Workout Mode
+                'target': '目标：',
+                'sets_times': '组 ×',
+                'times': '次',
+                'weight_kg': '重量',
+                'reps_label': '次数',
+                'completed': '已完成',
+                'weight_history_hint': '上次: {kg}kg × {reps}次',
+                'click_to_complete': '点击完成一组',
+
+                // Celebration
+                'exercise_completed': '完成！',
+                'well_done': '干得漂亮！',
+                'continue_training': '继续训练',
+                'next_exercise': '下一项',
+                'finish_exercise': '完成动作',
+
+                // Navigation
+                'nav_workout': '训练',
+                'nav_calendar': '日历',
+                'nav_profile': '我的',
+
+                // Calendar
+                'calendar_title': '训练日历',
+
+                // Profile
+                'body_data': '身体数据',
+                'edit': '编辑',
+                'body_weight': '体重',
+                'body_fat_rate': '体脂率',
+                'rest_timer': '休息倒计时',
+                'start': '开始',
+                'reset': '重置',
+                'personal_records': '个人记录 (PR)',
+                '60s': '60秒',
+                '90s': '90秒',
+                '120s': '120秒',
+
+                // Timer
+                'rest_timer': '休息倒计时',
+
+                // Profile
+                'no_records': '暂无记录',
+                'training_complete': '训练完成！',
+                'training_duration': '训练时长',
+                'completed_exercises': '完成动作',
+                'completed_sets': '完成组数',
+
+                // Stats
+                'total_training_time': '总训练时长',
+                'total_workouts': '总训练次数',
+                'total_exercises': '总动作数',
+                'best_record': '最佳记录'
+            },
+            'en': {
+                // Header
+                'start_workout': 'Start Workout',
+                'end_workout': 'End Workout',
+
+                // Progress
+                'today_completed': 'TODAY',
+
+                // Add Panel
+                'add_exercise': 'Add Exercise',
+                'exercise_name_placeholder': 'Exercise name (e.g. Squat)',
+                'strength': 'Strength',
+                'cardio': 'Cardio',
+                'sets': 'Sets',
+                'reps': 'Reps',
+                'kg': 'KG',
+                'minutes': 'Min',
+                'rest_interval': 'Rest',
+                'custom': 'Custom',
+                'advanced_sets': 'Advanced Sets',
+                'clear_all': 'Clear All',
+                'empty_state': 'Start adding your exercises!',
+
+                // Week Days
+                'monday': 'M',
+                'tuesday': 'T',
+                'wednesday': 'W',
+                'thursday': 'T',
+                'friday': 'F',
+                'saturday': 'S',
+                'sunday': 'S',
+
+                // Workout Mode
+                'target': 'Target: ',
+                'sets_times': 'Sets ×',
+                'times': 'Reps',
+                'weight_kg': 'Weight',
+                'reps_label': 'Reps',
+                'completed': 'Completed',
+                'weight_history_hint': 'Last: {kg}kg × {reps}reps',
+                'click_to_complete': 'Tap to complete set',
+
+                // Celebration
+                'exercise_completed': 'Completed!',
+                'well_done': 'Well done!',
+                'continue_training': 'Continue',
+                'next_exercise': 'Next',
+                'finish_exercise': 'Finish',
+
+                // Navigation
+                'nav_workout': 'Workout',
+                'nav_calendar': 'Calendar',
+                'nav_profile': 'Profile',
+
+                // Calendar
+                'calendar_title': 'Workout Calendar',
+
+                // Profile
+                'body_data': 'Body Data',
+                'edit': 'Edit',
+                'body_weight': 'Weight',
+                'body_fat_rate': 'Body Fat %',
+                'rest_timer': 'Rest Timer',
+                'start': 'Start',
+                'reset': 'Reset',
+                'personal_records': 'Personal Records (PR)',
+                '60s': '60s',
+                '90s': '90s',
+                '120s': '120s',
+
+                // Timer
+                'rest_timer': 'Rest Timer',
+
+                // Profile
+                'no_records': 'No records yet',
+                'training_complete': 'Workout Complete!',
+                'training_duration': 'Duration',
+                'completed_exercises': 'Exercises',
+                'completed_sets': 'Sets',
+
+                // Stats
+                'total_training_time': 'Total Time',
+                'total_workouts': 'Total Workouts',
+                'total_exercises': 'Total Exercises',
+                'best_record': 'Best Record'
+            }
+        };
+
+        // 全局变量记录当前语言，默认中文
+        let currentLang = localStorage.getItem('preferredLang') || 'zh';
+
+        // 核心切换函数
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('preferredLang', lang);
+
+            // 更新所有带有 data-i18n 属性的元素
+            const elements = document.querySelectorAll('[data-i18n]');
+            elements.forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+
+            // 更新所有带有 data-i18n-placeholder 属性的元素
+            const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+            placeholderElements.forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[lang] && translations[lang][key]) {
+                    el.placeholder = translations[lang][key];
+                }
+            });
+
+            // 更新语言按钮状态
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('bg-[#A3FF00]', 'text-black');
+                btn.classList.add('text-zinc-500', 'hover:text-white');
+            });
+            const activeBtn = document.getElementById(`lang-${lang}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-[#A3FF00]', 'text-black');
+                activeBtn.classList.remove('text-zinc-500', 'hover:text-white');
             }
 
-            // 设置图标
-            const icon = document.getElementById('theme-icon');
-            if (icon) {
-                icon.textContent = isDark ? '🌙' : '☀️';
-            }
-        }
+            // 更新日期显示
+            updateDateDisplay();
 
-        function toggleTheme() {
-            const html = document.documentElement;
-            const isDark = html.classList.contains('dark');
-
-            if (isDark) {
-                html.classList.remove('dark');
-                localStorage.setItem('ironlog_theme', 'light');
-                document.getElementById('theme-icon').textContent = '☀️';
-            } else {
-                html.classList.add('dark');
-                localStorage.setItem('ironlog_theme', 'dark');
-                document.getElementById('theme-icon').textContent = '🌙';
+            // 重新渲染卡片以更新动态内容
+            if (typeof renderTodayPlan === 'function') {
+                renderTodayPlan();
             }
+
+            // 重新渲染日历以更新月份标题
+            if (typeof renderCalendar === 'function') {
+                renderCalendar();
+            }
+
+            // 重新加载PR列表以更新文本
+            if (typeof loadProfileData === 'function') {
+                loadProfileData();
+            }
+
+            console.log(`Language switched to: ${lang}`);
         }
 
         // ============ 智能伸缩仪表盘 ============
@@ -1611,18 +1818,25 @@
 
             listContainer.innerHTML = '';
 
+            // 获取翻译
+            const setText = currentLang === 'zh' ? '第{n}组' : 'Set {n}';
+            const weightPlaceholder = currentLang === 'zh' ? '重量' : 'Weight';
+            const repsPlaceholder = currentLang === 'zh' ? '次数' : 'Reps';
+            const kgLabel = 'KG';
+            const repsLabel = currentLang === 'zh' ? '次' : 'reps';
+
             for (let i = 0; i < sets; i++) {
                 const setHtml = `
                     <div class="flex items-center gap-2 bg-gray-100 dark:bg-zinc-900 rounded-lg p-2">
-                        <span class="text-xs font-bold text-zinc-500 w-8">第${i + 1}组</span>
+                        <span class="text-xs font-bold text-zinc-500 w-8">${setText.replace('{n}', i + 1)}</span>
                         <div class="flex-1 flex gap-2">
                             <div class="flex-1 bg-white dark:bg-zinc-800 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
-                                <input type="number" class="set-weight w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${defaultWeight}" placeholder="重量" inputmode="decimal">
-                                <span class="text-[9px] text-zinc-500">KG</span>
+                                <input type="number" class="set-weight w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${defaultWeight}" placeholder="${weightPlaceholder}" inputmode="decimal">
+                                <span class="text-[9px] text-zinc-500">${kgLabel}</span>
                             </div>
                             <div class="flex-1 bg-white dark:bg-zinc-800 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
-                                <input type="number" class="set-reps w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${defaultReps}" placeholder="次数" inputmode="numeric">
-                                <span class="text-[9px] text-zinc-500">次</span>
+                                <input type="number" class="set-reps w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${defaultReps}" placeholder="${repsPlaceholder}" inputmode="numeric">
+                                <span class="text-[9px] text-zinc-500">${repsLabel}</span>
                             </div>
                         </div>
                     </div>
@@ -2041,6 +2255,12 @@
         function generateDetailsHtml(exercise, isEditable = false) {
             if (!exercise.setsDetails) return '';
 
+            // 获取翻译
+            const setText = currentLang === 'zh' ? '第{n}组' : 'Set {n}';
+            const weightPlaceholder = currentLang === 'zh' ? '重量' : 'Weight';
+            const repsPlaceholder = currentLang === 'zh' ? '次数' : 'Reps';
+            const repsLabel = currentLang === 'zh' ? '次' : 'reps';
+
             let html = '';
             exercise.setsDetails.forEach((detail, i) => {
                 const isSetDone = i < exercise.doneSets;
@@ -2050,15 +2270,15 @@
                     // 可编辑模式
                     html += `
                         <div class="flex items-center gap-2 p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                            <span class="text-xs font-bold text-zinc-500 w-10">第${i + 1}组</span>
+                            <span class="text-xs font-bold text-zinc-500 w-10">${setText.replace('{n}', i + 1)}</span>
                             <div class="flex-1 flex gap-2">
                                 <div class="flex-1 bg-white dark:bg-zinc-900 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
-                                    <input type="number" id="weight-${uniqueId}" class="edit-weight w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${detail.weight}" placeholder="重量" inputmode="decimal">
+                                    <input type="number" id="weight-${uniqueId}" class="edit-weight w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${detail.weight}" placeholder="${weightPlaceholder}" inputmode="decimal">
                                     <span class="text-[9px] text-zinc-500">KG</span>
                                 </div>
                                 <div class="flex-1 bg-white dark:bg-zinc-900 rounded px-2 flex items-center border border-gray-200 dark:border-zinc-700">
-                                    <input type="number" id="reps-${uniqueId}" class="edit-reps w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${detail.reps}" placeholder="次数" inputmode="numeric">
-                                    <span class="text-[9px] text-zinc-500">次</span>
+                                    <input type="number" id="reps-${uniqueId}" class="edit-reps w-full bg-transparent text-base font-bold text-gray-900 dark:text-white outline-none" value="${detail.reps}" placeholder="${repsPlaceholder}" inputmode="numeric">
+                                    <span class="text-[9px] text-zinc-500">${repsLabel}</span>
                                 </div>
                             </div>
                             <div class="${isSetDone ? 'text-[#A3FF00]' : 'text-zinc-400'}">
@@ -2070,11 +2290,11 @@
                     // 查看模式
                     html += `
                         <div class="flex items-center justify-between p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                            <span class="text-xs font-bold text-zinc-500">第 ${i + 1} 组</span>
+                            <span class="text-xs font-bold text-zinc-500">${setText.replace('{n}', i + 1)}</span>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-bold text-zinc-700 dark:text-zinc-300">${detail.weight} kg</span>
                                 <span class="text-xs text-zinc-500">×</span>
-                                <span class="text-sm font-bold text-zinc-700 dark:text-zinc-300">${detail.reps} 次</span>
+                                <span class="text-sm font-bold text-zinc-700 dark:text-zinc-300">${detail.reps} ${repsLabel}</span>
                             </div>
                             <div class="${isSetDone ? 'text-[#A3FF00]' : 'text-zinc-400'}">
                                 ${isSetDone ? '✓' : '○'}
@@ -2187,9 +2407,12 @@
                 }
 
                 // 根据类型显示不同的副标题
+                const minutesText = currentLang === 'zh' ? '分钟' : 'min';
+                const setsText = currentLang === 'zh' ? '组' : 'sets';
+                const repsText = currentLang === 'zh' ? '次' : 'reps';
                 const subtitle = isCardio
-                    ? `${exercise.duration || 30} 分钟`
-                    : `${exercise.weight || exercise.initialWeight || 0} KG × ${exercise.targetSets}组 × ${exercise.reps}次`;
+                    ? `${exercise.duration || 30} ${minutesText}`
+                    : `${exercise.weight || exercise.initialWeight || 0} KG × ${exercise.targetSets}${setsText} × ${exercise.reps}${repsText}`;
 
                 // 检查是否是新添加的卡片
                 const isNewlyAdded = exercise.id === newlyAddedCardId;
@@ -2241,16 +2464,16 @@
                                                       ${exercise.isEditMode ?
                                                           `<button onclick="event.stopPropagation(); saveSetDetails(${exercise.id})" class="flex-1 py-1.5 bg-[#A3FF00] hover:bg-[#9add00] text-black font-bold text-xs rounded-lg flex items-center justify-center gap-1 transition-colors">
                                                               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                                              保存修改
+                                                              ${currentLang === 'zh' ? '保存修改' : 'Save Changes'}
                                                           </button>` :
                                                           `<button onclick="event.stopPropagation(); toggleEditMode(${exercise.id})" class="flex-1 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-1 transition-colors">
                                                               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                                              编辑数据
+                                                              ${currentLang === 'zh' ? '编辑数据' : 'Edit Data'}
                                                           </button>`
                                                       }
                                                       <button onclick="toggleDetails(${exercise.id})" class="flex-1 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-bold text-xs rounded-lg flex items-center justify-center gap-1 transition-colors">
                                                           <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
-                                                          收起
+                                                          ${currentLang === 'zh' ? '收起' : 'Collapse'}
                                                       </button>
                                                   </div>
                                                   <!-- 详情内容 -->
@@ -3033,9 +3256,10 @@
 
         function updatePRList(plan) {
             const prList = document.getElementById('pr-list');
+            const noRecordsText = currentLang === 'zh' ? '暂无记录' : 'No records yet';
 
             if (plan.length === 0) {
-                prList.innerHTML = '<p class="text-gray-500 dark:text-zinc-600 text-sm text-center py-4">暂无记录</p>';
+                prList.innerHTML = `<p class="text-gray-500 dark:text-zinc-600 text-sm text-center py-4">${noRecordsText}</p>`;
                 return;
             }
 
@@ -3046,8 +3270,10 @@
                 if (exercise.type === 'cardio') {
                     // 有氧训练
                     shouldDisplay = exercise.completed;
-                    detailText = `${exercise.duration}分钟`;
-                    progressText = '✓ 完成';
+                    const minutesText = currentLang === 'zh' ? '分钟' : 'min';
+                    const completedText = currentLang === 'zh' ? '✓ 完成' : '✓ Done';
+                    detailText = `${exercise.duration}${minutesText}`;
+                    progressText = completedText;
                 } else {
                     // 力量训练
                     shouldDisplay = exercise.doneSets > 0;
@@ -3070,8 +3296,12 @@
                         weightText = `${exercise.initialWeight}kg `;
                     }
 
-                    detailText = `${weightText}${exercise.targetSets}组 × ${exercise.reps}次`;
+                    const setsText = currentLang === 'zh' ? '组 ×' : 'sets ×';
+                    const repsText = currentLang === 'zh' ? '次' : 'reps';
+                    const setsLabel = currentLang === 'zh' ? '组数' : 'Sets';
+                    detailText = `${weightText}${exercise.targetSets}${setsText} ${exercise.reps}${repsText}`;
                     progressText = `${exercise.doneSets} / ${exercise.targetSets}`;
+                    var setTypeLabel = setsLabel;
                 }
 
                 if (shouldDisplay) {
@@ -3083,7 +3313,7 @@
                             </div>
                             <div class="text-right">
                                 <span class="text-black dark:text-[#A3FF00] font-black">${progressText}</span>
-                                <p class="text-gray-500 dark:text-zinc-500 text-xs">${exercise.type === 'cardio' ? '已完成' : '组数'}</p>
+                                <p class="text-gray-500 dark:text-zinc-500 text-xs">${exercise.type === 'cardio' ? (currentLang === 'zh' ? '已完成' : 'Done') : setTypeLabel}</p>
                             </div>
                         </div>
                     `;
@@ -3091,7 +3321,7 @@
             });
 
             if (!html) {
-                html = '<p class="text-gray-500 dark:text-zinc-600 text-sm text-center py-4">暂无记录</p>';
+                html = `<p class="text-gray-500 dark:text-zinc-600 text-sm text-center py-4">${noRecordsText}</p>`;
             }
 
             prList.innerHTML = html;
@@ -3117,14 +3347,6 @@
 
         // 初始化 V4.0 新功能事件监听器
         function initV4Features() {
-            // 主题切换按钮
-            const themeToggleBtn = document.getElementById('theme-toggle-btn');
-            if (themeToggleBtn) {
-                themeToggleBtn.addEventListener('click', function() {
-                    toggleTheme();
-                });
-            }
-
             // 动作完成覆盖层 - 继续下一项按钮
             const nextExerciseBtn = document.getElementById('next-exercise-btn');
             if (nextExerciseBtn) {
@@ -3236,14 +3458,27 @@
             });
         }
 
-        // 更新日期显示 - 中文格式
+        // 更新日期显示 - 支持中英文
         function updateDateDisplay() {
             const now = new Date();
-            const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-            const dayName = days[now.getDay()];
             const month = now.getMonth() + 1;
             const date = now.getDate();
-            const dateStr = `${dayName} · ${month}月${date}日`;
+            let dateStr = '';
+
+            if (currentLang === 'zh') {
+                // 中文格式
+                const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+                const dayName = days[now.getDay()];
+                dateStr = `${dayName} · ${month}月${date}日`;
+            } else {
+                // 英文格式
+                const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                const dayName = days[now.getDay()];
+                const monthName = months[now.getMonth()];
+                dateStr = `${dayName}, ${monthName} ${date}`;
+            }
+
             document.getElementById('current-date').textContent = dateStr;
         }
 
@@ -3399,8 +3634,11 @@
                 }
 
                 // 更新目标显示中的次数
+                const targetText = currentLang === 'zh' ? '目标：' : 'Target: ';
+                const setsText = currentLang === 'zh' ? '组 ×' : 'sets ×';
+                const repsText = currentLang === 'zh' ? '次' : 'reps';
                 document.getElementById('workout-target').textContent =
-                    `目标：${weightText}${currentExercise.targetSets}组 × ${currentReps}次`;
+                    `${targetText}${weightText}${currentExercise.targetSets}${setsText} ${currentReps}${repsText}`;
             }
 
             updateWorkoutProgress();
@@ -3608,7 +3846,9 @@
             // 如果还有下一组，显示预告
             if (nextSetNumber < currentExercise.targetSets) {
                 previewElement.classList.remove('hidden');
-                previewElement.innerHTML = `下一组: <span class="text-[#A3FF00] font-semibold">${nextWeight}kg × ${nextReps}</span>`;
+                const nextSetText = currentLang === 'zh' ? '下一组:' : 'Next: ';
+                const repsText = currentLang === 'zh' ? '' : 'reps';
+                previewElement.innerHTML = `${nextSetText} <span class="text-[#A3FF00] font-semibold">${nextWeight}kg × ${nextReps}${repsText}</span>`;
             } else {
                 previewElement.classList.add('hidden');
             }
@@ -3837,7 +4077,14 @@
             const year = currentCalendarDate.getFullYear();
             const month = currentCalendarDate.getMonth();
 
-            monthTitle.textContent = `${year}年${month + 1}月`;
+            // 根据语言显示月份
+            if (currentLang === 'zh') {
+                monthTitle.textContent = `${year}年${month + 1}月`;
+            } else {
+                const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+                monthTitle.textContent = `${months[month]} ${year}`;
+            }
 
             const firstDay = new Date(year, month, 1).getDay();
             const firstDayIndex = firstDay === 0 ? 6 : firstDay - 1;
@@ -4081,9 +4328,8 @@
             const offset = circumference - (circumference * (restTimeLeft / selectedRestTime));
             ring.style.strokeDashoffset = offset;
 
-            // 更新圆环颜色：浅色模式黑色，深色模式荧光绿
-            const isDark = document.documentElement.classList.contains('dark');
-            ring.style.stroke = isDark ? '#A3FF00' : '#000000';
+            // 圆环颜色：荧光绿
+            ring.style.stroke = '#A3FF00';
         }
 
         // ============ V15.0 左滑删除功能 ============
@@ -4315,6 +4561,9 @@
         // ============ 初始化 ============
 
         document.addEventListener('DOMContentLoaded', function() {
+            // 初始化语言
+            setLanguage(currentLang);
+
             // 更新日期显示
             updateDateDisplay();
 
@@ -4400,7 +4649,6 @@
                 }
             });
 
-            initTheme();  // 初始化主题
             initTabNavigation();
             initRestTimer();
             initInputConsole();

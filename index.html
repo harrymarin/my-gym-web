@@ -3419,32 +3419,42 @@
             // 格式化训练时间
             const minutes = Math.floor(sessionElapsedTime / 60);
             const seconds = sessionElapsedTime % 60;
-            const timeStr = `${minutes}分${seconds}秒`;
+            const minText = currentLang === 'zh' ? '分' : 'm ';
+            const secText = currentLang === 'zh' ? '秒' : 's';
+            const timeStr = `${minutes}${minText}${seconds}${secText}`;
 
             // 创建总结弹窗
             const overlay = document.createElement('div');
             overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+
+            // 根据语言设置文本
+            const titleText = currentLang === 'zh' ? '🎉 训练完成！' : '🎉 Workout Complete!';
+            const durationText = currentLang === 'zh' ? '训练时长' : 'Duration';
+            const exercisesText = currentLang === 'zh' ? '完成动作' : 'Exercises';
+            const setsText = currentLang === 'zh' ? '完成组数' : 'Sets';
+            const buttonText = currentLang === 'zh' ? '太棒了！' : 'Awesome!';
+
             overlay.innerHTML = `
                 <div class="bg-white dark:bg-zinc-900 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-fade-in">
-                    <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-6 text-center">🎉 训练完成！</h2>
+                    <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-6 text-center">${titleText}</h2>
 
                     <div class="space-y-4 mb-8">
                         <div class="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
-                            <span class="text-gray-600 dark:text-zinc-400">训练时长</span>
+                            <span class="text-gray-600 dark:text-zinc-400">${durationText}</span>
                             <span class="text-xl font-bold text-[#A3FF00]">${timeStr}</span>
                         </div>
                         <div class="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
-                            <span class="text-gray-600 dark:text-zinc-400">完成动作</span>
+                            <span class="text-gray-600 dark:text-zinc-400">${exercisesText}</span>
                             <span class="text-xl font-bold text-gray-900 dark:text-white">${completedExercises}/${totalExercises}</span>
                         </div>
                         <div class="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
-                            <span class="text-gray-600 dark:text-zinc-400">完成组数</span>
+                            <span class="text-gray-600 dark:text-zinc-400">${setsText}</span>
                             <span class="text-xl font-bold text-gray-900 dark:text-white">${completedSets}/${totalSets}</span>
                         </div>
                     </div>
 
                     <button onclick="this.closest('.fixed').remove()" class="w-full py-4 bg-[#A3FF00] hover:bg-[#9add00] text-black font-black rounded-xl transition-colors duration-200 active:scale-95">
-                        太棒了！
+                        ${buttonText}
                     </button>
                 </div>
             `;

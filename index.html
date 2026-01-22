@@ -518,6 +518,7 @@
         .plan-card.is-active {
             overflow: visible !important;
             z-index: 10;
+            position: relative;
         }
 
         /* 5. 激活状态：强制隐藏红色删除层（防止透红） */
@@ -795,7 +796,7 @@
             </div>
 
             <!-- 清空按钮 -->
-            <div id="clear-all-container" class="hidden mt-6 mb-8">
+            <div id="clear-all-container" class="hidden mt-6 mb-8 relative z-10">
                 <button id="clear-all-btn" class="w-full py-2.5 bg-gray-100 dark:bg-black/40 backdrop-blur-md border border-gray-200 dark:border-[#A3FF00]/10 text-gray-600 dark:text-zinc-400 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-black/50 transition-colors duration-200 text-sm" data-i18n="clear_all">
                     清空今日计划
                 </button>

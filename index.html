@@ -782,7 +782,7 @@
 
                     <button onclick="addFromCard()"
                         class="w-full h-11 rounded-xl bg-[#A3FF00] hover:bg-[#9add00] text-black font-black text-base shadow-[0_0_20px_rgba(163,255,0,0.15)] active:scale-[0.98] transition-colors duration-200 flex items-center justify-center gap-2">
-                        <span>确认添加</span>
+                        <span data-i18n="confirm_add">确认添加</span>
                     </button>
                 </div>
             </div>
@@ -1220,7 +1220,16 @@
                 'total_training_time': '总训练时长',
                 'total_workouts': '总训练次数',
                 'total_exercises': '总动作数',
-                'best_record': '最佳记录'
+                'best_record': '最佳记录',
+
+                // Card Buttons
+                'card_start': '开始',
+                'card_complete': '完成',
+                'card_delete': '删除',
+                'save_changes': '保存修改',
+                'edit_data': '编辑数据',
+                'collapse': '收起',
+                'confirm_add': '确认添加'
             },
             'en': {
                 // Header
@@ -1306,7 +1315,16 @@
                 'total_training_time': 'Total Time',
                 'total_workouts': 'Total Workouts',
                 'total_exercises': 'Total Exercises',
-                'best_record': 'Best Record'
+                'best_record': 'Best Record',
+
+                // Card Buttons
+                'card_start': 'Start',
+                'card_complete': 'Complete',
+                'card_delete': 'Delete',
+                'save_changes': 'Save Changes',
+                'edit_data': 'Edit Data',
+                'collapse': 'Collapse',
+                'confirm_add': 'Add Exercise'
             }
         };
 
@@ -2422,7 +2440,7 @@
 
                 const cardHtml = `
                     <div class="${outerClass} plan-card ${newCardAnimationClass}" data-exercise-id="${exercise.id}" style="view-transition-name: card-${exercise.id};">
-                         ${!isCompleted ? `<div class="delete-action-layer bg-red-500/90 backdrop-blur-xl"><div class="flex items-center gap-1 font-bold text-white mr-4"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg><span>删除</span></div></div>` : ''}
+                         ${!isCompleted ? `<div class="delete-action-layer bg-red-500/90 backdrop-blur-xl"><div class="flex items-center gap-1 font-bold text-white mr-4"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg><span data-i18n="card_delete">${currentLang === "zh" ? "删除" : "Delete"}</span></div></div>` : ''}
                          <div class="${innerClass}" onclick="${isCardio ? '' : `toggleDetails(${exercise.id})`}">
                               <div class="flex justify-between items-center">
                                   <div>
@@ -2434,10 +2452,10 @@
                                           <div class="w-12 h-12 rounded-full bg-[#6EDD46] flex items-center justify-center shadow-lg"><svg class="w-7 h-7 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
                                       ` : `
                                           ${isCardio ? `
-                                              <button onclick="event.stopPropagation(); completeCardio(${exercise.id})" class="bg-[#6EDD46] hover:bg-[#5bc438] text-black font-black text-sm px-5 py-2 rounded-full shadow-lg active:scale-95 flex items-center gap-1 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>完成</button>
+                                              <button onclick="event.stopPropagation(); completeCardio(${exercise.id})" class="bg-[#6EDD46] hover:bg-[#5bc438] text-black font-black text-sm px-5 py-2 rounded-full shadow-lg active:scale-95 flex items-center gap-1 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span data-i18n="card_complete">${currentLang === "zh" ? "完成" : "Complete"}</span></button>
                                           ` : `
                                           ${!isExpanded ? `
-                                              <button onclick="event.stopPropagation(); startExercise(${exercise.id})" class="bg-[#6EDD46] hover:bg-[#5bc438] text-black font-black text-sm px-5 py-2 rounded-full shadow-lg active:scale-95 flex items-center gap-1 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>开始</button>
+                                              <button onclick="event.stopPropagation(); startExercise(${exercise.id})" class="bg-[#6EDD46] hover:bg-[#5bc438] text-black font-black text-sm px-5 py-2 rounded-full shadow-lg active:scale-95 flex items-center gap-1 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span data-i18n="card_start">${currentLang === "zh" ? "开始" : "Start"}</span></button>
                                           ` : `
                                                <div class="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800/50 backdrop-blur-sm border border-white/10 text-zinc-400 details-chevron transition-transform duration-300 ${showDetails ? 'rotate-180' : ''}"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>
                                           `}
